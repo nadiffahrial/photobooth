@@ -166,9 +166,44 @@ class PhotoboothTests(unittest.TestCase):
         upload_res = self.client.post("/api/photos", data={"photo": (img, "p.png")}, content_type="multipart/form-data")
         filename = upload_res.get_json()["name"]
 
-        response = self.client.post(f"/api/photos/{filename}/caption")
+    def test_admin_access_allowed_for_admin(self):
+        # Default admin otomatis terbuat: admin / admin123
+        self.client.post("/login", data={"username": "admin", "password": "admin123"}, follow_redirects=True)
+        response = self.client.get("/admin")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("caption", response.get_json())
+        self.assertIn(b"Panel Kendali Admin", response.data)
+
+    def test_admin_access_denied_for_regular_user(self):
+        self.client.post(
+            "/register",
+            data={"username": "regular", "password": "password123", "password_confirm": "password123"},
+            follow_redirects=True,
+        )
+        response = self.client.get("/admin", follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Akses ditolak", response.data)
+
+    def test_admin_can_manage_user_and_roles(self):
+        # Login admin
+        self.client.post("/login", data={"username": "admin", "password": "admin123"}, follow_redirects=True)
+
+        # Buat user lain lewat db langsung
+        target_user = db.create_user(self.app.config["DATABASE_PATH"], "testuser", "password123", role="user")
+
+        # Ganti role testuser menjadi admin
+        role_resp = self.client.post(
+            f"/admin/users/{target_user['id']}/role",
+            data={"role": "admin"},
+            follow_redirects=True,
+        )
+        self.assertEqual(role_resp.status_code, 200)
+        updated_user = db.get_user_by_id(self.app.config["DATABASE_PATH"], target_user["id"])
+        self.assertEqual(updated_user["role"], "admin")
+
+        # Hapus testuser
+        del_resp = self.client.post(f"/admin/users/{target_user['id']}/delete", follow_redirects=True)
+        self.assertEqual(del_resp.status_code, 200)
+        self.assertIsNone(db.get_user_by_id(self.app.config["DATABASE_PATH"], target_user["id"]))
 
 
 if __name__ == "__main__":

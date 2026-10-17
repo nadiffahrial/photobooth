@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import secrets
 from datetime import datetime, timezone
+from functools import wraps
 from pathlib import Path
 
 from flask import (
@@ -43,6 +44,17 @@ def get_current_user():
     return db.get_user_by_id(current_app.config["DATABASE_PATH"], user_id)
 
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_current_user()
+        if not user or user.get("role") != "admin":
+            flash("Akses ditolak. Halaman ini hanya untuk Administrator.", "error")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 @app.get("/")
 def index():
     user = get_current_user()
@@ -67,6 +79,7 @@ def login():
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             session["display_name"] = user["display_name"]
+            session["role"] = user["role"]
 
             if request.is_json:
                 return jsonify({"success": True, "user": user}), 200
@@ -113,6 +126,7 @@ def register():
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             session["display_name"] = user["display_name"]
+            session["role"] = user["role"]
 
             if request.is_json:
                 return jsonify({"success": True, "user": user}), 201
@@ -150,6 +164,63 @@ def api_me():
     if user:
         return jsonify({"authenticated": True, "user": user})
     return jsonify({"authenticated": False, "is_guest": bool(session.get("is_guest"))})
+
+
+# ==============================================================================
+# Rute Panel Administrator
+# ==============================================================================
+@app.get("/admin")
+@admin_required
+def admin_dashboard():
+    user = get_current_user()
+    stats = db.get_system_stats(current_app.config["DATABASE_PATH"])
+    users = db.get_all_users(current_app.config["DATABASE_PATH"])
+    photos = db.get_all_photos_admin(current_app.config["DATABASE_PATH"])
+    return render_template("admin.html", user=user, stats=stats, users=users, photos=photos)
+
+
+@app.post("/admin/users/<int:user_id>/role")
+@admin_required
+def admin_change_role(user_id: int):
+    current = get_current_user()
+    if current["id"] == user_id:
+        flash("Anda tidak dapat mengubah role akun Anda sendiri.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    new_role = request.form.get("role", "user")
+    db.update_user_role(current_app.config["DATABASE_PATH"], user_id, new_role)
+    flash(f"Role pengguna #{user_id} berhasil diubah menjadi {new_role}.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.post("/admin/users/<int:user_id>/delete")
+@admin_required
+def admin_delete_user(user_id: int):
+    current = get_current_user()
+    if current["id"] == user_id:
+        flash("Anda tidak dapat menghapus akun Anda sendiri.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    user_photos = db.get_photos(current_app.config["DATABASE_PATH"], user_id=user_id)
+    for p in user_photos:
+        p_file = current_app.config["UPLOAD_DIR"] / p["name"]
+        if p_file.is_file():
+            p_file.unlink()
+
+    db.delete_user(current_app.config["DATABASE_PATH"], user_id)
+    flash("Pengguna dan seluruh fotonya berhasil dihapus.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.post("/admin/photos/<path:filename>/delete")
+@admin_required
+def admin_delete_photo(filename: str):
+    p_file = current_app.config["UPLOAD_DIR"] / filename
+    if p_file.is_file():
+        p_file.unlink()
+    db.delete_photo(current_app.config["DATABASE_PATH"], filename, is_admin=True)
+    flash(f"Foto {filename} berhasil dihapus oleh admin.", "success")
+    return redirect(url_for("admin_dashboard"))
 
 
 @app.get("/api/photos")
@@ -211,9 +282,10 @@ def delete_photo(filename: str):
 
     user = get_current_user()
     user_id = user["id"] if user else None
-    deleted = db.delete_photo(current_app.config["DATABASE_PATH"], filename=filename, user_id=user_id)
+    is_admin = bool(user and user.get("role") == "admin")
+    deleted = db.delete_photo(current_app.config["DATABASE_PATH"], filename=filename, user_id=user_id, is_admin=is_admin)
 
-    if deleted or user_id is None:
+    if deleted or user_id is None or is_admin:
         if target.is_file():
             target.unlink()
         return jsonify({"success": True, "name": filename})

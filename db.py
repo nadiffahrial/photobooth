@@ -31,13 +31,15 @@ def init_db(db_path: Path | str, upload_dir: Optional[Path | str] = None) -> Non
     path.parent.mkdir(parents=True, exist_ok=True)
 
     with db_session(path) as conn:
-        conn.executescript(
+        cursor = conn.cursor()
+        cursor.executescript(
             """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL COLLATE NOCASE,
                 password_hash TEXT NOT NULL,
                 display_name TEXT,
+                role TEXT NOT NULL DEFAULT 'user',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -52,6 +54,28 @@ def init_db(db_path: Path | str, upload_dir: Optional[Path | str] = None) -> Non
             CREATE INDEX IF NOT EXISTS idx_photos_user ON photos(user_id);
             """
         )
+
+        # Migrasi kolom 'role' jika tabel users sudah ada sebelumnya tanpa kolom role
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [row["name"] for row in cursor.fetchall()]
+        if "role" not in columns:
+            cursor.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+
+        # Buat akun admin default jika belum ada admin sama sekali
+        cursor.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
+        if not cursor.fetchone():
+            cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+            admin_row = cursor.fetchone()
+            if admin_row:
+                cursor.execute("UPDATE users SET role = 'admin' WHERE id = ?", (admin_row["id"],))
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO users (username, password_hash, display_name, role)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    ("admin", generate_password_hash("admin123"), "Administrator", "admin"),
+                )
 
         # Sinkronkan file lama yang sudah ada di disk jika ada
         if upload_dir:
@@ -69,11 +93,12 @@ def init_db(db_path: Path | str, upload_dir: Optional[Path | str] = None) -> Non
 
 
 def create_user(
-    db_path: Path | str, username: str, password: str, display_name: Optional[str] = None
+    db_path: Path | str, username: str, password: str, display_name: Optional[str] = None, role: str = "user"
 ) -> Dict[str, Any]:
     username = (username or "").strip()
     password = password or ""
     display_name = (display_name or "").strip() or username
+    role = "admin" if role == "admin" else "user"
 
     if not USERNAME_PATTERN.match(username):
         raise ValueError("Username harus terdiri dari 3-30 karakter alfanumerik atau underscore (_).")
@@ -88,13 +113,13 @@ def create_user(
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO users (username, password_hash, display_name)
-                VALUES (?, ?, ?)
+                INSERT INTO users (username, password_hash, display_name, role)
+                VALUES (?, ?, ?, ?)
                 """,
-                (username, password_hash, display_name),
+                (username, password_hash, display_name, role),
             )
             user_id = cursor.lastrowid
-            cursor.execute("SELECT id, username, display_name, created_at FROM users WHERE id = ?", (user_id,))
+            cursor.execute("SELECT id, username, display_name, role, created_at FROM users WHERE id = ?", (user_id,))
             row = cursor.fetchone()
             return dict(row)
     except sqlite3.IntegrityError:
@@ -111,7 +136,7 @@ def verify_user(db_path: Path | str, username: str, password: str) -> Optional[D
     with db_session(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, username, password_hash, display_name, created_at FROM users WHERE username = ?",
+            "SELECT id, username, password_hash, display_name, role, created_at FROM users WHERE username = ?",
             (username,),
         )
         row = cursor.fetchone()
@@ -123,6 +148,7 @@ def verify_user(db_path: Path | str, username: str, password: str) -> Optional[D
                 "id": row["id"],
                 "username": row["username"],
                 "display_name": row["display_name"],
+                "role": row["role"],
                 "created_at": row["created_at"],
             }
         return None
@@ -132,11 +158,65 @@ def get_user_by_id(db_path: Path | str, user_id: int) -> Optional[Dict[str, Any]
     with db_session(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, username, display_name, created_at FROM users WHERE id = ?",
+            "SELECT id, username, display_name, role, created_at FROM users WHERE id = ?",
             (user_id,),
         )
         row = cursor.fetchone()
         return dict(row) if row else None
+
+
+def get_all_users(db_path: Path | str) -> List[Dict[str, Any]]:
+    with db_session(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT u.id, u.username, u.display_name, u.role, u.created_at,
+                   COUNT(p.id) as photo_count
+            FROM users u
+            LEFT JOIN photos p ON u.id = p.user_id
+            GROUP BY u.id
+            ORDER BY u.id ASC
+            """
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def update_user_role(db_path: Path | str, user_id: int, new_role: str) -> bool:
+    new_role = "admin" if new_role == "admin" else "user"
+    with db_session(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET role = ? WHERE id = ?", (new_role, user_id))
+        return cursor.rowcount > 0
+
+
+def delete_user(db_path: Path | str, user_id: int) -> bool:
+    with db_session(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        return cursor.rowcount > 0
+
+
+def get_system_stats(db_path: Path | str) -> Dict[str, Any]:
+    with db_session(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) as total_users FROM users")
+        total_users = cursor.fetchone()["total_users"]
+
+        cursor.execute("SELECT COUNT(*) as total_photos FROM photos")
+        total_photos = cursor.fetchone()["total_photos"]
+
+        cursor.execute("SELECT COUNT(*) as total_admins FROM users WHERE role = 'admin'")
+        total_admins = cursor.fetchone()["total_admins"]
+
+        cursor.execute("SELECT COUNT(*) as guest_photos FROM photos WHERE user_id IS NULL")
+        guest_photos = cursor.fetchone()["guest_photos"]
+
+        return {
+            "total_users": total_users,
+            "total_photos": total_photos,
+            "total_admins": total_admins,
+            "guest_photos": guest_photos,
+        }
 
 
 def add_photo(db_path: Path | str, filename: str, user_id: Optional[int] = None) -> None:
@@ -154,7 +234,6 @@ def get_photos(db_path: Path | str, user_id: Optional[int] = None) -> List[Dict[
     with db_session(db_path) as conn:
         cursor = conn.cursor()
         if user_id is not None:
-            # Foto milik user tertentu
             cursor.execute(
                 """
                 SELECT filename, created_at FROM photos
@@ -164,7 +243,6 @@ def get_photos(db_path: Path | str, user_id: Optional[int] = None) -> List[Dict[
                 (user_id,),
             )
         else:
-            # Tamu / publik (foto tanpa user)
             cursor.execute(
                 """
                 SELECT filename, created_at FROM photos
@@ -184,10 +262,40 @@ def get_photos(db_path: Path | str, user_id: Optional[int] = None) -> List[Dict[
         ]
 
 
-def delete_photo(db_path: Path | str, filename: str, user_id: Optional[int] = None) -> bool:
+def get_all_photos_admin(db_path: Path | str) -> List[Dict[str, Any]]:
     with db_session(db_path) as conn:
         cursor = conn.cursor()
-        if user_id is not None:
+        cursor.execute(
+            """
+            SELECT p.id, p.filename, p.created_at, p.user_id,
+                   COALESCE(u.display_name, u.username, 'Tamu') as owner_name,
+                   u.username
+            FROM photos p
+            LEFT JOIN users u ON p.user_id = u.id
+            ORDER BY p.id DESC
+            """
+        )
+        rows = cursor.fetchall()
+        return [
+            {
+                "id": row["id"],
+                "name": row["filename"],
+                "url": f"/photos/{row['filename']}",
+                "created_at": row["created_at"],
+                "user_id": row["user_id"],
+                "owner_name": row["owner_name"],
+                "username": row["username"],
+            }
+            for row in rows
+        ]
+
+
+def delete_photo(db_path: Path | str, filename: str, user_id: Optional[int] = None, is_admin: bool = False) -> bool:
+    with db_session(db_path) as conn:
+        cursor = conn.cursor()
+        if is_admin:
+            cursor.execute("DELETE FROM photos WHERE filename = ?", (filename,))
+        elif user_id is not None:
             cursor.execute(
                 "DELETE FROM photos WHERE filename = ? AND user_id = ?",
                 (filename, user_id),
@@ -198,4 +306,3 @@ def delete_photo(db_path: Path | str, filename: str, user_id: Optional[int] = No
                 (filename,),
             )
         return cursor.rowcount > 0
-

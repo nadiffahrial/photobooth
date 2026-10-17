@@ -16,8 +16,11 @@
             <div class="topbar-actions">
                 <div class="status"><span class="status-dot"></span> Camera ready</div>
                 {% if user %}
+                    {% if user.role == 'admin' %}
+                        <a href="/admin" class="admin-topbar-link" title="Buka Panel Administrator">👑 Panel Admin</a>
+                    {% endif %}
                     <div class="user-pill">
-                        <span class="user-name">👤 {{ user.display_name or user.username }}</span>
+                        <span class="user-name">{% if user.role == 'admin' %}👑{% else %}👤{% endif %} {{ user.display_name or user.username }}</span>
                         <a href="/logout" class="logout-link" title="Keluar dari akun">Keluar ⎋</a>
                     </div>
                 {% else %}

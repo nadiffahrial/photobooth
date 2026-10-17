@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Panel Administrator — Snap Studio</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body class="admin-body">
+    <header class="topbar">
+        <div class="topbar-left">
+            <a class="brand" href="/" aria-label="Snap Studio home">
+                <span class="brand-mark">S</span>
+                <span>Snap Studio</span>
+            </a>
+            <span class="admin-badge">👑 Administrator</span>
+        </div>
+        <div class="topbar-actions">
+            <a href="/" class="nav-back-link">← Ke Photobooth</a>
+            <div class="user-pill">
+                <span class="user-name">👑 {{ user.display_name or user.username }}</span>
+                <a href="/logout" class="logout-link">Keluar ⎋</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-shell">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="admin-alerts">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="admin-header-title">
+            <div>
+                <p class="eyebrow">DASHBOARD & MANAGEMENT</p>
+                <h1>Panel Kendali Admin</h1>
+            </div>
+        </div>
+
+        <!-- Kartu Statistik -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-icon">👥</span>
+                <div class="stat-info">
+                    <span class="stat-number">{{ stats.total_users }}</span>
+                    <span class="stat-label">Total Pengguna Terdaftar</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">📸</span>
+                <div class="stat-info">
+                    <span class="stat-number">{{ stats.total_photos }}</span>
+                    <span class="stat-label">Total Foto Photobooth</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">👑</span>
+                <div class="stat-info">
+                    <span class="stat-number">{{ stats.total_admins }}</span>
+                    <span class="stat-label">Administrator Aktif</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-icon">✨</span>
+                <div class="stat-info">
+                    <span class="stat-number">{{ stats.guest_photos }}</span>
+                    <span class="stat-label">Foto dari Tamu</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabel Manajemen Pengguna -->
+        <section class="admin-section">
+            <div class="section-header-compact">
+                <h2>Manajemen Pengguna ({{ users|length }})</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Nama Lengkap</th>
+                            <th>Role</th>
+                            <th>Jumlah Foto</th>
+                            <th>Terdaftar</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                            <tr>
+                                <td>#{{ u.id }}</td>
+                                <td><strong>@{{ u.username }}</strong></td>
+                                <td>{{ u.display_name }}</td>
+                                <td>
+                                    {% if u.role == 'admin' %}
+                                        <span class="role-badge role-admin">👑 Admin</span>
+                                    {% else %}
+                                        <span class="role-badge role-user">👤 User</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ u.photo_count }} foto</td>
+                                <td>{{ u.created_at[:10] }}</td>
+                                <td class="action-cell">
+                                    {% if u.id != user.id %}
+                                        <form method="POST" action="/admin/users/{{ u.id }}/role" style="display:inline;">
+                                            <input type="hidden" name="role" value="{% if u.role == 'admin' %}user{% else %}admin{% endif %}">
+                                            <button type="submit" class="btn-sm btn-outline" title="Ganti Role">
+                                                {% if u.role == 'admin' %}Jadikan User{% else %}Jadikan Admin{% endif %}
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="/admin/users/{{ u.id }}/delete" style="display:inline;" onsubmit="return confirm('Yakin ingin menghapus user @{{ u.username }} beserta seluruh fotonya?');">
+                                            <button type="submit" class="btn-sm btn-danger">Hapus</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="self-tag">(Akun Anda)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Galeri Seluruh Foto -->
+        <section class="admin-section">
+            <div class="section-header-compact">
+                <h2>Seluruh Foto Photobooth ({{ photos|length }})</h2>
+                <span class="hint-text">Sebagai Admin, Anda dapat mengelola dan memantau semua foto yang diambil.</span>
+            </div>
+            <div class="admin-photo-grid">
+                {% if photos %}
+                    {% for p in photos %}
+                        <article class="admin-photo-card">
+                            <div class="admin-photo-img-wrapper">
+                                <img src="{{ p.url }}" alt="Foto {{ p.name }}" loading="lazy">
+                            </div>
+                            <div class="admin-photo-meta">
+                                <span class="photo-owner">
+                                    {% if p.user_id %}
+                                        👤 <strong>{{ p.owner_name }}</strong>
+                                    {% else %}
+                                        ✨ <em>Tamu</em>
+                                    {% endif %}
+                                </span>
+                                <span class="photo-date">{{ p.created_at[:10] }}</span>
+                            </div>
+                            <div class="admin-photo-actions">
+                                <a href="{{ p.url }}" download class="btn-sm btn-outline">Unduh</a>
+                                <form method="POST" action="/admin/photos/{{ p.name }}/delete" onsubmit="return confirm('Yakin hapus foto ini?');">
+                                    <button type="submit" class="btn-sm btn-danger">Hapus</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-gallery">
+                        <span>✦</span>
+                        <p>Belum ada foto yang tersimpan di sistem.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</body>
+</html>
