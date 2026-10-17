@@ -14,10 +14,6 @@ const elements = {
     refreshGallery: document.querySelector('#refreshGallery'),
     frameOptions: [...document.querySelectorAll('.frame-option')],
     toast: document.querySelector('#toast'),
-    getAiPose: document.querySelector('#getAiPose'),
-    aiPoseBox: document.querySelector('#aiPoseBox'),
-    aiPoseText: document.querySelector('#aiPoseText'),
-    closePoseBox: document.querySelector('#closePoseBox'),
     aiCaptionModal: document.querySelector('#aiCaptionModal'),
     captionText: document.querySelector('#captionText'),
     closeCaptionModal: document.querySelector('#closeCaptionModal'),
@@ -1002,23 +998,6 @@ async function deletePhoto(filename) {
     }
 }
 
-async function requestAiPose() {
-    if (!elements.aiPoseBox || !elements.aiPoseText) return;
-    elements.getAiPose.disabled = true;
-    elements.getAiPose.querySelector('span').textContent = '🤖 Berpikir...';
-    try {
-        const res = await fetch('/api/ai/pose');
-        const data = await res.json();
-        elements.aiPoseText.textContent = data.pose || 'Tersenyumlah lebar dan tunjukkan gaya terbaikmu!';
-        elements.aiPoseBox.hidden = false;
-    } catch (err) {
-        showToast('Gagal memuat rekomendasi pose.');
-    } finally {
-        elements.getAiPose.disabled = false;
-        elements.getAiPose.querySelector('span').textContent = '✨ Ide Pose AI';
-    }
-}
-
 async function generateAiCaption(filename) {
     if (!elements.aiCaptionModal || !elements.captionText) return;
     elements.aiCaptionModal.hidden = false;
@@ -1127,14 +1106,6 @@ elements.stopCamera.addEventListener('click', stopCamera);
 elements.refreshGallery.addEventListener('click', loadPhotos);
 elements.frameOptions.forEach(option => option.addEventListener('click', () => selectFrame(option.dataset.frame)));
 
-if (elements.getAiPose) {
-    elements.getAiPose.addEventListener('click', requestAiPose);
-}
-if (elements.closePoseBox) {
-    elements.closePoseBox.addEventListener('click', () => {
-        elements.aiPoseBox.hidden = true;
-    });
-}
 if (elements.closeCaptionModal) {
     elements.closeCaptionModal.addEventListener('click', () => {
         elements.aiCaptionModal.hidden = true;

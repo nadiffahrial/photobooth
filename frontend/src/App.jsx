@@ -20,10 +20,6 @@ export default function App() {
   const [isCaptionModalOpen, setIsCaptionModalOpen] = useState(false);
   const [currentCaption, setCurrentCaption] = useState('');
 
-  // AI Pose
-  const [aiPose, setAiPose] = useState(null);
-  const [loadingPose, setLoadingPose] = useState(false);
-
   const showToast = (msg) => {
     clearTimeout(toastTimer);
     setToast(msg);
@@ -68,19 +64,6 @@ export default function App() {
       loadPhotos();
     } catch {
       showToast('Gagal keluar.');
-    }
-  };
-
-  const handleRequestPose = async () => {
-    setLoadingPose(true);
-    try {
-      const res = await fetch('/api/ai/pose');
-      const data = await res.json();
-      setAiPose(data.pose || 'Tersenyumlah lebar dan tunjukkan pose terbaikmu! 📸✨');
-    } catch {
-      showToast('Gagal memuat rekomendasi pose AI.');
-    } finally {
-      setLoadingPose(false);
     }
   };
 
@@ -213,37 +196,12 @@ export default function App() {
             <div className="hero-btn-row">
               <button
                 type="button"
-                className="btn-ai"
-                disabled={loadingPose}
-                onClick={handleRequestPose}
-                title="Dapatkan rekomendasi pose seru dari AI"
-              >
-                <span>✨ {loadingPose ? 'Berpikir…' : 'Ide Pose AI'}</span>
-              </button>
-              <button
-                type="button"
                 className="btn-secondary"
                 onClick={handleCreateStripFromGallery}
               >
-                <span>🎞️ Strip dari Galeri</span>
+                <span>🎞️ Buat Strip 3 Foto dari Galeri</span>
               </button>
             </div>
-
-            {aiPose && (
-              <div className="ai-pose-box">
-                <div className="ai-pose-header">
-                  <span>🤖 Rekomendasi Pose SnapBot AI</span>
-                  <button
-                    type="button"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}
-                    onClick={() => setAiPose(null)}
-                  >
-                    ×
-                  </button>
-                </div>
-                <p className="ai-pose-text">{aiPose}</p>
-              </div>
-            )}
           </div>
 
           <CameraView
