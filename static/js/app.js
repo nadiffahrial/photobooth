@@ -59,8 +59,8 @@ function setCameraControls(active) {
         const textSpan = elements.startCamera.querySelector('span:first-child');
         if (textSpan) {
             textSpan.textContent = active 
-                ? (captureMode === 'strip' ? 'Kamera aktif · Mode Strip 3 Foto' : 'Kamera aktif · foto otomatis') 
-                : 'Mulai foto otomatis';
+                ? (captureMode === 'strip' ? 'Kamera aktif · Mode Strip 3 Foto' : 'Kamera aktif') 
+                : 'Aktifkan Kamera';
         }
     }
 }
@@ -68,9 +68,7 @@ function setCameraControls(active) {
 function stopCamera() {
     clearInterval(autoCaptureTimer);
     autoCaptureTimer = null;
-    autoCountdown = 5;
     elements.autoTimer.hidden = true;
-    elements.autoTimerValue.textContent = '5';
     if (stream) {
         stream.getTracks().forEach(track => track.stop());
         stream = null;
@@ -79,31 +77,6 @@ function stopCamera() {
     elements.cameraStage.classList.remove('is-active');
     elements.cameraStatus.textContent = 'Kamera tidak aktif';
     setCameraControls(false);
-}
-
-function updateAutoCountdown() {
-    elements.autoTimerValue.textContent = String(autoCountdown);
-}
-
-function startAutoCapture() {
-    clearInterval(autoCaptureTimer);
-    if (captureMode === 'strip') {
-        elements.autoTimer.hidden = true;
-        return; // Auto-capture paused in strip mode
-    }
-    autoCountdown = 5;
-    updateAutoCountdown();
-    elements.autoTimer.hidden = false;
-    autoCaptureTimer = setInterval(() => {
-        if (!stream || isCapturing) return;
-
-        autoCountdown -= 1;
-        if (autoCountdown <= 0) {
-            autoCountdown = 5;
-            capturePhoto();
-        }
-        updateAutoCountdown();
-    }, 1000);
 }
 
 async function startCamera() {
@@ -149,10 +122,9 @@ async function startCamera() {
             elements.cameraStage.classList.remove('is-back-camera');
         }
         elements.cameraStatus.textContent = captureMode === 'strip' 
-            ? 'Kamera aktif · Siap untuk strip 3 foto' 
-            : 'Kamera aktif · foto otomatis 5 detik';
+            ? 'Kamera aktif · Klik Take Foto untuk mulai 3 pose' 
+            : 'Kamera aktif · Klik Take Foto untuk mengambil foto';
         setCameraControls(true);
-        startAutoCapture();
     } catch (error) {
         console.error(error);
         showToast('Tidak dapat membuka kamera. Pastikan izin kamera sudah diaktifkan.');
@@ -196,7 +168,7 @@ function grabCurrentVideoFrame() {
     return canvas;
 }
 
-// Single photo capture
+// Single photo capture on button click with 3s countdown
 async function capturePhoto() {
     if (!stream || isCapturing) return;
 
@@ -206,33 +178,38 @@ async function capturePhoto() {
     }
 
     isCapturing = true;
-    triggerFlash();
-    const canvas = grabCurrentVideoFrame();
-
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.96));
-    if (!blob) {
-        showToast('Foto tidak dapat dibuat.');
-        isCapturing = false;
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('photo', blob, 'capture.png');
     elements.capturePhoto.disabled = true;
-    elements.capturePhoto.setAttribute('aria-label', 'Mengambil foto');
+    elements.autoTimer.hidden = false;
 
     try {
+        for (let c = 3; c >= 1; c--) {
+            elements.autoTimer.innerHTML = `<span>Siap-siap!</span><strong style="font-size:1.8rem;">${c}</strong>`;
+            elements.cameraStatus.textContent = `Bersiap foto dalam ${c} detik...`;
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        elements.autoTimer.innerHTML = `<span>Senyum!</span><strong style="font-size:1.4rem;">📸 SMILE!</strong>`;
+        triggerFlash();
+        const canvas = grabCurrentVideoFrame();
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.96));
+        if (!blob) throw new Error('Foto tidak dapat dibuat.');
+
+        const formData = new FormData();
+        formData.append('photo', blob, 'capture.png');
+
         const response = await fetch('/api/photos', { method: 'POST', body: formData });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.error || 'Gagal menyimpan foto.');
-        showToast('Foto berhasil diambil!');
+        showToast('Foto berhasil diambil! 📸');
+        elements.cameraStatus.textContent = 'Foto tersimpan! Klik Take Foto untuk foto baru.';
         await loadPhotos();
     } catch (error) {
         showToast(error.message);
     } finally {
         isCapturing = false;
+        elements.autoTimer.hidden = true;
         elements.capturePhoto.disabled = false;
-        elements.capturePhoto.setAttribute('aria-label', 'Ambil foto');
     }
 }
 
@@ -1046,8 +1023,7 @@ if (elements.modeSingle && elements.modeStrip) {
         elements.modeStrip.setAttribute('aria-pressed', 'false');
         if (elements.burstStatus) elements.burstStatus.textContent = '1080p · 30fps';
         if (stream) {
-            elements.cameraStatus.textContent = 'Kamera aktif · foto otomatis 5 detik';
-            startAutoCapture();
+            elements.cameraStatus.textContent = 'Kamera aktif · Klik Take Foto untuk mengambil foto';
         }
     });
 
@@ -1058,11 +1034,8 @@ if (elements.modeSingle && elements.modeStrip) {
         elements.modeSingle.classList.remove('is-active');
         elements.modeSingle.setAttribute('aria-pressed', 'false');
         if (elements.burstStatus) elements.burstStatus.textContent = 'Mode: 3-Strip (Pose 1-2-3)';
-        // Stop 5-second automatic capture in strip mode so user controls when to start the 3-pose burst
-        clearInterval(autoCaptureTimer);
-        elements.autoTimer.hidden = true;
         if (stream) {
-            elements.cameraStatus.textContent = 'Kamera aktif · Tekan tombol kamera untuk mulai 3 pose!';
+            elements.cameraStatus.textContent = 'Kamera aktif · Klik Take Foto untuk mulai 3 pose';
         }
     });
 }

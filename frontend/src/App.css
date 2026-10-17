@@ -340,35 +340,42 @@ body {
   cursor: not-allowed;
 }
 
-.shutter-btn {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  border: 4px solid var(--accent);
-  background: white;
+.btn-take-photo {
+  flex: 1;
+  max-width: 280px;
+  min-height: 54px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: white;
+  border: none;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   cursor: pointer;
-  padding: 4px;
-  transition: transform 0.15s, box-shadow 0.2s;
-  box-shadow: 0 4px 18px rgba(123, 60, 255, 0.3);
+  box-shadow: 0 6px 22px rgba(123, 60, 255, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.shutter-btn:hover:not(:disabled) {
-  transform: scale(1.06);
-  box-shadow: 0 6px 22px rgba(123, 60, 255, 0.45);
+.btn-take-photo:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 28px rgba(123, 60, 255, 0.55);
 }
-.shutter-btn:active:not(:disabled) {
-  transform: scale(0.96);
+.btn-take-photo:active:not(:disabled) {
+  transform: scale(0.97);
 }
-.shutter-btn:disabled {
-  opacity: 0.4;
+.btn-take-photo:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
-.shutter-inner {
-  width: 100%;
-  height: 100%;
-  background: var(--accent);
-  border-radius: 50%;
-  transition: background 0.2s;
+.take-photo-icon {
+  font-size: 1.35rem;
 }
+
 
 /* Gallery Section */
 .gallery-section {

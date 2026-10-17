@@ -96,19 +96,23 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
     return canvas;
   };
 
-  // Single Photo Capture
+  // Single Photo Capture with 3s countdown
   const handleSingleCapture = async () => {
     if (!isActive || isCapturing) return;
     setIsCapturing(true);
-    triggerFlash();
-
-    const canvas = grabFrame();
-    if (!canvas) {
-      setIsCapturing(false);
-      return;
-    }
 
     try {
+      for (let count = 3; count >= 1; count--) {
+        setAutoTimer({ label: 'Siap-siap!', val: count });
+        setStatusText(`Bersiap foto dalam ${count} detik...`);
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+
+      setAutoTimer({ label: 'Senyum!', val: '📸 SMILE!' });
+      triggerFlash();
+      const canvas = grabFrame();
+      if (!canvas) throw new Error('Foto tidak dapat dibuat.');
+
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.95));
       const formData = new FormData();
       formData.append('photo', blob, 'capture.png');
@@ -122,11 +126,13 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
       if (!res.ok || !data.success) throw new Error(data.error || 'Gagal menyimpan foto.');
 
       showToast('Foto berhasil diambil! 📸');
+      setStatusText('Foto tersimpan! Siap untuk foto berikutnya.');
       if (onPhotoSaved) onPhotoSaved();
     } catch (err) {
-      showToast(err.message || 'Gagal menyimpan foto.');
+      showToast(err.message || 'Gagal mengambil foto.');
     } finally {
       setIsCapturing(false);
+      setAutoTimer(null);
     }
   };
 
@@ -176,28 +182,12 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
     }
   };
 
-  // Auto-capture for single mode
+  // Manual capture: user triggers photo on-demand with "Take Foto" button
   useEffect(() => {
-    if (isActive && captureMode === 'single') {
-      let count = 5;
-      setAutoTimer({ label: 'Foto otomatis', val: count });
-      autoTimerRef.current = setInterval(() => {
-        count -= 1;
-        if (count <= 0) {
-          count = 5;
-          handleSingleCapture();
-        }
-        setAutoTimer({ label: 'Foto otomatis', val: count });
-      }, 1000);
-
-      return () => {
-        clearInterval(autoTimerRef.current);
-      };
-    } else {
+    return () => {
       clearInterval(autoTimerRef.current);
-      setAutoTimer(null);
-    }
-  }, [isActive, captureMode]);
+    };
+  }, []);
 
   return (
     <div className="camera-card">
@@ -291,12 +281,19 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
 
         <button
           type="button"
-          className="shutter-btn"
+          className="btn-take-photo"
           disabled={!isActive || isCapturing}
           onClick={handleCaptureClick}
-          title={captureMode === 'strip' ? 'Mulai sesi 3 pose' : 'Ambil foto'}
+          title={captureMode === 'strip' ? 'Mulai sesi 3 pose' : 'Take Foto'}
         >
-          <div className="shutter-inner" />
+          <span className="take-photo-icon">📸</span>
+          <span>
+            {isCapturing
+              ? 'Mengambil…'
+              : captureMode === 'strip'
+              ? 'Take Foto (3 Strip)'
+              : 'Take Foto'}
+          </span>
         </button>
 
         <button

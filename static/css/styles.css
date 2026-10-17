@@ -109,6 +109,39 @@ h1 em::after { content: ""; position: absolute; height: 7px; left: 2px; right: -
 .capture-button:not(:disabled):active { transform: scale(.9); }
 .capture-button span { width: 42px; height: 42px; border-radius: 50%; background: white; }
 
+.btn-take-photo-classic {
+    min-height: 52px;
+    padding: 0 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-deep, #7b3cff));
+    color: white;
+    border: none;
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(123, 60, 255, 0.4);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-take-photo-classic:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 26px rgba(123, 60, 255, 0.55);
+}
+.btn-take-photo-classic:active:not(:disabled) {
+    transform: scale(0.97);
+}
+.btn-take-photo-classic:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    background: #c9c5be;
+}
+
 .gallery-section { position: relative; background: linear-gradient(135deg, #151318 0%, #230f35 52%, #151318 100%); color: #fffdf9; padding: 84px max(32px, calc((100vw - 1156px) / 2)); overflow: hidden; }
 .gallery-section::before { content: ""; position: absolute; width: 420px; height: 420px; top: -250px; right: 8%; border-radius: 50%; background: radial-gradient(circle, rgba(123,60,255,.5), rgba(123,60,255,0) 68%); }
 .gallery-section::after { content: ""; position: absolute; width: 180px; height: 180px; bottom: -120px; left: 8%; border: 1px solid rgba(201,181,255,.16); border-radius: 42% 58% 66% 34% / 48% 33% 67% 52%; transform: rotate(25deg); }
