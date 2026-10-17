@@ -5,6 +5,10 @@
 
 function drawCoverImage(ctx, img, x, y, w, h, radius = 0) {
   if (!img) return;
+  // If HTMLImageElement, check if successfully loaded and valid
+  if (img instanceof HTMLImageElement && (!img.complete || img.naturalWidth === 0)) {
+    return;
+  }
   const imgW = img.videoWidth || img.naturalWidth || img.width || 1;
   const imgH = img.videoHeight || img.naturalHeight || img.height || 1;
   const srcRatio = imgW / imgH;
@@ -30,7 +34,11 @@ function drawCoverImage(ctx, img, x, y, w, h, radius = 0) {
     else ctx.rect(x, y, w, h);
     ctx.clip();
   }
-  ctx.drawImage(img, sx, sy, sWidth, sHeight, x, y, w, h);
+  try {
+    ctx.drawImage(img, sx, sy, sWidth, sHeight, x, y, w, h);
+  } catch (err) {
+    console.warn('[stripRenderer] Error drawing image frame:', err);
+  }
   ctx.restore();
 }
 
@@ -238,9 +246,9 @@ export function render3StripCanvas(canvas, framesInput = [], theme = 'film-noir'
     ctx.textAlign = 'center';
     ctx.fillText('우리들의 가장 빛나는 순간들 ✨', W / 2, 1785);
 
-    ctx.fillStyle = '#A36081';
-    ctx.font = '13px "DM Sans", sans-serif';
-    ctx.fillText('SNAP STUDIO SEOUL · 2026. 10. 17', W / 2, 1815);
+    const now = new Date();
+    const dateFormatted = `${now.getFullYear()}. ${String(now.getMonth() + 1).padStart(2, '0')}. ${String(now.getDate()).padStart(2, '0')}`;
+    ctx.fillText(`SNAP STUDIO SEOUL · ${dateFormatted}`, W / 2, 1815);
 
     ctx.fillStyle = '#C2829D';
     ctx.font = '24px sans-serif';

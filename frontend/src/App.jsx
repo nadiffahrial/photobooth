@@ -134,13 +134,21 @@ export default function App() {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => resolve(img);
-            img.onerror = () => resolve(img);
+            img.onerror = () => resolve(null);
             img.src = p.url;
           });
         })
       );
+      const validImages = loadedImages.filter(Boolean);
+      if (validImages.length === 0) {
+        showToast('Gagal memuat foto dari galeri.');
+        return;
+      }
+      while (validImages.length < 3) {
+        validImages.push(validImages[0]);
+      }
       setSessionResult({
-        frames: loadedImages,
+        frames: validImages,
         theme: selectedTheme,
         photo: { name: selected[0].name, url: selected[0].url }
       });

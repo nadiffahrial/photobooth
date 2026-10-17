@@ -214,12 +214,67 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.get("/api/auth/me")
 @app.get("/api/me")
 def api_me():
     user = get_current_user()
+    return jsonify({"user": user, "authenticated": bool(user), "is_guest": bool(session.get("is_guest"))})
+
+
+@app.post("/api/auth/login")
+def api_auth_login():
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+    if is_auth_rate_limited(ip):
+        return jsonify({"error": "Terlalu banyak percobaan masuk dari IP Anda. Harap tunggu 1 menit."}), 429
+
+    data = request.get_json(silent=True) or request.form or {}
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+
+    user = db.verify_user(current_app.config["DATABASE_PATH"], username, password)
     if user:
-        return jsonify({"authenticated": True, "user": user})
-    return jsonify({"authenticated": False, "is_guest": bool(session.get("is_guest"))})
+        session.clear()
+        session["user_id"] = user["id"]
+        session["username"] = user["username"]
+        session["display_name"] = user["display_name"]
+        session["role"] = user["role"]
+        return jsonify({"success": True, "user": dict(user)}), 200
+
+    return jsonify({"error": "Username atau password salah."}), 401
+
+
+@app.post("/api/auth/register")
+def api_auth_register():
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+    if is_auth_rate_limited(ip):
+        return jsonify({"error": "Terlalu banyak percobaan pendaftaran dari IP Anda. Harap tunggu 1 menit."}), 429
+
+    data = request.get_json(silent=True) or request.form or {}
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+    display_name = (data.get("display_name") or "").strip()
+
+    try:
+        user = db.create_user(
+            current_app.config["DATABASE_PATH"],
+            username=username,
+            password=password,
+            display_name=display_name,
+        )
+        session.clear()
+        session["user_id"] = user["id"]
+        session["username"] = user["username"]
+        session["display_name"] = user["display_name"]
+        session["role"] = user["role"]
+        return jsonify({"success": True, "user": dict(user)}), 201
+    except ValueError as err:
+        return jsonify({"error": str(err)}), 400
+
+
+@app.post("/api/auth/logout")
+def api_auth_logout():
+    session.clear()
+    return jsonify({"success": True, "message": "Berhasil keluar."}), 200
 
 
 @app.post("/api/auth/google")
@@ -331,6 +386,58 @@ def admin_delete_photo(filename: str):
     return redirect(url_for("admin_dashboard"))
 
 
+@app.get("/api/admin/users")
+def api_admin_users():
+    user = get_current_user()
+    if not user or user.get("role") != "admin":
+        return jsonify({"error": "Akses ditolak: Hanya untuk Administrator."}), 403
+
+    users = db.get_all_users(current_app.config["DATABASE_PATH"])
+    return jsonify({"users": users})
+
+
+@app.post("/api/admin/users/<int:user_id>/role")
+def api_admin_update_role(user_id: int):
+    current = get_current_user()
+    if not current or current.get("role") != "admin":
+        return jsonify({"error": "Akses ditolak: Hanya untuk Administrator."}), 403
+
+    data = request.get_json(silent=True) or request.form or {}
+    role = data.get("role")
+    if role not in ("admin", "user"):
+        return jsonify({"error": "Role tidak valid."}), 400
+
+    if current["id"] == user_id and role != "admin":
+        return jsonify({"error": "Anda tidak dapat mencabut role admin Anda sendiri."}), 400
+
+    db.update_user_role(current_app.config["DATABASE_PATH"], user_id, role)
+    return jsonify({"success": True, "message": f"Role berhasil diperbarui menjadi {role}."})
+
+
+@app.delete("/api/admin/users/<int:user_id>")
+def api_admin_delete_user(user_id: int):
+    current = get_current_user()
+    if not current or current.get("role") != "admin":
+        return jsonify({"error": "Akses ditolak: Hanya untuk Administrator."}), 403
+
+    if current["id"] == user_id:
+        return jsonify({"error": "Anda tidak dapat menghapus akun Anda sendiri saat sedang aktif."}), 400
+
+    user_photos = db.get_photos(current_app.config["DATABASE_PATH"], user_id=user_id)
+    for p in user_photos:
+        filename = p.get("name") or p.get("filename")
+        if filename:
+            p_file = current_app.config["UPLOAD_DIR"] / filename
+            if p_file.is_file():
+                try:
+                    p_file.unlink()
+                except Exception:
+                    pass
+
+    db.delete_user(current_app.config["DATABASE_PATH"], user_id)
+    return jsonify({"success": True, "message": "Pengguna dan seluruh fotonya berhasil dihapus."})
+
+
 @app.get("/api/photos")
 def list_photos():
     user = get_current_user()
@@ -369,12 +476,18 @@ def save_photo():
     user_id = user["id"] if user else None
     db.add_photo(current_app.config["DATABASE_PATH"], filename=filename, user_id=user_id)
 
+    photo_data = {
+        "name": filename,
+        "url": f"/photos/{filename}",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
     return jsonify(
         {
             "success": True,
+            "photo": photo_data,
             "name": filename,
             "url": f"/photos/{filename}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": photo_data["created_at"],
         }
     ), 201
 
@@ -393,9 +506,12 @@ def delete_photo(filename: str):
     is_admin = bool(user and user.get("role") == "admin")
     deleted = db.delete_photo(current_app.config["DATABASE_PATH"], filename=filename, user_id=user_id, is_admin=is_admin)
 
-    if deleted or user_id is None or is_admin:
+    if deleted:
         if target.is_file():
-            target.unlink()
+            try:
+                target.unlink()
+            except Exception:
+                pass
         return jsonify({"success": True, "name": filename})
 
     return jsonify({"error": "Anda tidak memiliki izin untuk menghapus gambar ini."}), 403

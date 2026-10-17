@@ -245,6 +245,67 @@ class PhotoboothTests(unittest.TestCase):
         )
         self.assertEqual(new_login.status_code, 200)
 
+    def test_api_auth_me_login_logout(self):
+        # Register via JSON
+        reg = self.client.post(
+            "/api/auth/register",
+            json={"username": "apitester", "password": "password123", "display_name": "API Tester"},
+        )
+        self.assertEqual(reg.status_code, 201)
+        self.assertEqual(reg.get_json()["user"]["username"], "apitester")
+
+        # Check /api/auth/me
+        me = self.client.get("/api/auth/me")
+        self.assertEqual(me.status_code, 200)
+        self.assertEqual(me.get_json()["user"]["username"], "apitester")
+
+        # Logout via JSON
+        logout = self.client.post("/api/auth/logout")
+        self.assertEqual(logout.status_code, 200)
+
+        # Me after logout
+        me_after = self.client.get("/api/auth/me")
+        self.assertIsNone(me_after.get_json()["user"])
+
+        # Login via JSON
+        login = self.client.post("/api/auth/login", json={"username": "apitester", "password": "password123"})
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(login.get_json()["user"]["username"], "apitester")
+
+    def test_api_admin_users_and_role(self):
+        # Login admin
+        self.client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+
+        # Get users list via JSON
+        resp = self.client.get("/api/admin/users")
+        self.assertEqual(resp.status_code, 200)
+        users = resp.get_json()["users"]
+        self.assertTrue(any(u["username"] == "admin" for u in users))
+
+    def test_unauthorized_photo_delete_prevented(self):
+        # User 1 registers and uploads photo
+        self.client.post(
+            "/api/auth/register",
+            json={"username": "photouser", "password": "password123"},
+        )
+        img = io.BytesIO()
+        Image.new("RGB", (20, 20), color="#123456").save(img, format="PNG")
+        img.seek(0)
+        upload_res = self.client.post("/api/photos", data={"photo": (img, "p.png")}, content_type="multipart/form-data")
+        self.assertEqual(upload_res.status_code, 201)
+        res_json = upload_res.get_json()
+        self.assertIn("photo", res_json)
+        self.assertEqual(res_json["photo"]["name"], res_json["name"])
+        filename = res_json["name"]
+
+        # Logout
+        self.client.post("/api/auth/logout")
+
+        # Attempt to delete without authentication (should be 403 Forbidden)
+        del_attempt = self.client.delete(f"/api/photos/{filename}")
+        self.assertEqual(del_attempt.status_code, 403)
+        self.assertTrue((self.app.config["UPLOAD_DIR"] / filename).is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

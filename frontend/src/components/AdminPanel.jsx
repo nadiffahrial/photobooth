@@ -99,15 +99,15 @@ export default function AdminPanel({ isOpen, onClose, showToast }) {
                         style={{
                           padding: '4px 8px',
                           borderRadius: '8px',
-                          border: '1px solid var(--line)',
+                          border: u.role === 'admin' ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(99, 102, 241, 0.4)',
                           fontSize: '0.8rem',
-                          background: u.role === 'admin' ? '#fee2e2' : '#e0e7ff',
-                          color: u.role === 'admin' ? '#dc2626' : '#4338ca',
+                          background: u.role === 'admin' ? 'rgba(239, 68, 68, 0.18)' : 'rgba(99, 102, 241, 0.18)',
+                          color: u.role === 'admin' ? '#f87171' : '#818cf8',
                           fontWeight: 700
                         }}
                       >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
+                        <option value="user" style={{ background: '#181324', color: '#fff' }}>User</option>
+                        <option value="admin" style={{ background: '#181324', color: '#f87171' }}>Admin</option>
                       </select>
                     </td>
                     <td style={{ padding: '12px 4px' }}>
@@ -117,9 +117,9 @@ export default function AdminPanel({ isOpen, onClose, showToast }) {
                       <button
                         type="button"
                         style={{
-                          background: '#fee2e2',
-                          color: '#dc2626',
-                          border: 'none',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          color: '#f87171',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
                           padding: '4px 10px',
                           borderRadius: '8px',
                           fontSize: '0.78rem',

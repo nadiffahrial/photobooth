@@ -610,8 +610,8 @@ app.delete('/api/photos/:filename', (req, res) => {
             return res.status(404).json({ error: 'Foto tidak ditemukan.' });
         }
 
-        // Broken Access Control check: only owner or admin can delete
-        if (user && user.role !== 'admin' && photo.user_id && photo.user_id !== user.id) {
+        // Broken Access Control check: only owner or admin can delete a user's photo
+        if (photo.user_id && (!user || (user.role !== 'admin' && photo.user_id !== user.id))) {
             return res.status(403).json({ error: 'Anda tidak memiliki hak untuk menghapus foto ini.' });
         }
 
