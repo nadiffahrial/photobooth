@@ -117,8 +117,8 @@ function validateMagicBytes(filePath) {
     }
 }
 
-// In-Memory Rate Limiter against Brute-Force & Denial of Service (DoS)
-function createRateLimiter({ windowMs, max, message }) {
+// In-Memory Rate Limiter against Brute-Force & Denial of Service (DoS) with Memory Cap
+function createRateLimiter({ windowMs, max, message, maxEntries = 2000 }) {
     const hits = new Map();
 
     setInterval(() => {
@@ -136,6 +136,11 @@ function createRateLimiter({ windowMs, max, message }) {
         let record = hits.get(ip);
 
         if (!record || now - record.startTime > windowMs) {
+            // Memory protection: prune oldest record if exceeding capacity
+            if (hits.size >= maxEntries) {
+                const oldest = hits.keys().next().value;
+                if (oldest) hits.delete(oldest);
+            }
             record = { startTime: now, count: 1 };
             hits.set(ip, record);
             return next();
@@ -167,10 +172,15 @@ const uploadRateLimiter = createRateLimiter({
     message: 'Batas frekuensi pengambilan foto tercapai. Silakan coba lagi dalam beberapa menit.'
 });
 
-// Session store in memory with TTL expiration
+// Session store in memory with TTL expiration and strict RAM capacity cap
 const sessions = new Map();
+const MAX_SESSIONS = 1000;
 
 function createSession(user) {
+    if (sessions.size >= MAX_SESSIONS) {
+        const oldestToken = sessions.keys().next().value;
+        if (oldestToken) sessions.delete(oldestToken);
+    }
     const token = crypto.randomBytes(32).toString('hex');
     sessions.set(token, {
         id: user.id,

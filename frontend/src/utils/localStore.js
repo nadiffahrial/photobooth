@@ -159,15 +159,35 @@ export function localLogout() {
   } catch {}
 }
 
-// 2. Photo Storage Helpers (IndexedDB with LocalStorage Fallback)
+// Active object URLs cache for automatic RAM cleanup
+const activeObjectUrls = new Map();
+
+export function revokePhotoUrl(filename) {
+  if (activeObjectUrls.has(filename)) {
+    try {
+      URL.revokeObjectURL(activeObjectUrls.get(filename));
+    } catch {}
+    activeObjectUrls.delete(filename);
+  }
+}
+
+export function revokeAllPhotoUrls() {
+  for (const url of activeObjectUrls.values()) {
+    try {
+      URL.revokeObjectURL(url);
+    } catch {}
+  }
+  activeObjectUrls.clear();
+}
+
+// 2. Photo Storage Helpers (Native Binary Blob IndexedDB for Minimal RAM)
 export async function localSavePhoto(blob, filename) {
   const name = filename || `photo_${Date.now()}.png`;
-  const dataUrl = await blobToDataUrl(blob);
   const user = localCheckUser();
 
   const photoRecord = {
     name,
-    url: dataUrl,
+    blob, // Store native binary Blob in IndexedDB (zero V8 string heap bloat)
     created_at: new Date().toISOString(),
     user_id: user ? user.id : null,
     owner: user ? (user.display_name || user.username) : 'Tamu'
@@ -182,24 +202,26 @@ export async function localSavePhoto(blob, filename) {
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
-  } catch {
-    // Fallback to localStorage (store up to 8 photos)
-    try {
-      const raw = localStorage.getItem('snap_photos_cache') || '[]';
-      const photos = JSON.parse(raw);
-      photos.unshift(photoRecord);
-      localStorage.setItem('snap_photos_cache', JSON.stringify(photos.slice(0, 8)));
-    } catch {}
+  } catch (err) {
+    console.warn('[localStore] IndexedDB save warning:', err);
   }
 
-  return photoRecord;
+  // Recycle and create lightweight 50-byte Object URL pointer for UI
+  revokePhotoUrl(name);
+  const objectUrl = URL.createObjectURL(blob);
+  activeObjectUrls.set(name, objectUrl);
+
+  return {
+    ...photoRecord,
+    url: objectUrl
+  };
 }
 
 export async function localGetPhotos() {
   const user = localCheckUser();
   try {
     const db = await openDB();
-    const photos = await new Promise((resolve, reject) => {
+    const records = await new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
       const req = store.getAll();
@@ -207,26 +229,33 @@ export async function localGetPhotos() {
       req.onerror = () => reject(req.error);
     });
 
-    photos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    records.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    if (user && user.role === 'admin') {
-      return photos;
-    }
-    if (user) {
-      return photos.filter((p) => p.user_id === user.id || p.user_id === null);
-    }
-    return photos;
+    const filtered = records.filter((p) => {
+      if (user && user.role === 'admin') return true;
+      if (user) return p.user_id === user.id || p.user_id === null;
+      return true;
+    });
+
+    // Efficiently map records to Object URLs without memory duplication
+    return filtered.map((p) => {
+      if (p.blob instanceof Blob) {
+        let url = activeObjectUrls.get(p.name);
+        if (!url) {
+          url = URL.createObjectURL(p.blob);
+          activeObjectUrls.set(p.name, url);
+        }
+        return { ...p, url };
+      }
+      return p;
+    });
   } catch {
-    try {
-      const raw = localStorage.getItem('snap_photos_cache') || '[]';
-      return JSON.parse(raw);
-    } catch {
-      return [];
-    }
+    return [];
   }
 }
 
 export async function localDeletePhoto(filename) {
+  revokePhotoUrl(filename);
   try {
     const db = await openDB();
     await new Promise((resolve, reject) => {
@@ -238,11 +267,6 @@ export async function localDeletePhoto(filename) {
     });
   } catch {}
 
-  try {
-    const raw = localStorage.getItem('snap_photos_cache') || '[]';
-    const photos = JSON.parse(raw).filter((p) => p.name !== filename);
-    localStorage.setItem('snap_photos_cache', JSON.stringify(photos));
-  } catch {}
-
   return true;
 }
+

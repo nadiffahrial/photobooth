@@ -16,6 +16,19 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  build: {
+    target: 'es2020',
+    cssMinify: true,
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          qrcode: ['qrcode']
+        }
+      }
+    }
   }
 });
 

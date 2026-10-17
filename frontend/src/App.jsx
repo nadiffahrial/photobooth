@@ -6,7 +6,7 @@ import SoftFileModal from './components/SoftFileModal';
 import AuthScreen from './components/AuthScreen';
 import AdminPanel from './components/AdminPanel';
 import { getDeviceInfo } from './utils/deviceDetector';
-import { isStaticHost, localCheckUser, localGetPhotos, localLogout, localDeletePhoto } from './utils/localStore';
+import { isStaticHost, localCheckUser, localGetPhotos, localLogout, localDeletePhoto, revokeAllPhotoUrls } from './utils/localStore';
 
 export default function App() {
   const [deviceInfo, setDeviceInfo] = useState(getDeviceInfo);
@@ -94,6 +94,7 @@ export default function App() {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
+      revokeAllPhotoUrls();
     };
   }, []);
 
@@ -330,12 +331,32 @@ export default function App() {
       {/* STEP 3: MODAL SOFT FILE BERBENTUK QR CODE (MUNCUL OTOMATIS KETIKA SESI FOTO BERAKHIR) */}
       <SoftFileModal
         isOpen={isSoftFileModalOpen}
-        onClose={() => setIsSoftFileModalOpen(false)}
+        onClose={() => {
+          setIsSoftFileModalOpen(false);
+          if (sessionResult?.frames) {
+            sessionResult.frames.forEach((f) => {
+              if (f && typeof f.getContext === 'function') {
+                f.width = 0;
+                f.height = 0;
+              }
+            });
+          }
+          setSessionResult(null);
+        }}
         frames={sessionResult?.frames || []}
         initialTheme={sessionResult?.theme || selectedTheme}
         initialPhoto={sessionResult?.photo}
         onSaved={loadPhotos}
         onRestartSession={() => {
+          if (sessionResult?.frames) {
+            sessionResult.frames.forEach((f) => {
+              if (f && typeof f.getContext === 'function') {
+                f.width = 0;
+                f.height = 0;
+              }
+            });
+          }
+          setSessionResult(null);
           setCurrentStep('theme');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}

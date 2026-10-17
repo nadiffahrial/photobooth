@@ -61,10 +61,13 @@ export default function SoftFileModal({
     };
   }, [isOpen]);
 
-  // Render canvas whenever modal opens or theme changes
+  // Render canvas whenever modal opens or theme changes, and release memory when closed
   useEffect(() => {
     if (isOpen && canvasRef.current && frames && frames.length > 0) {
       render3StripCanvas(canvasRef.current, frames, currentTheme);
+    } else if (!isOpen && canvasRef.current) {
+      canvasRef.current.width = 0;
+      canvasRef.current.height = 0;
     }
   }, [isOpen, frames, currentTheme]);
 
