@@ -5,8 +5,10 @@ import ThemeSelector from './components/ThemeSelector';
 import SoftFileModal from './components/SoftFileModal';
 import AuthModal from './components/AuthModal';
 import AdminPanel from './components/AdminPanel';
+import { getDeviceInfo } from './utils/deviceDetector';
 
 export default function App() {
+  const [deviceInfo, setDeviceInfo] = useState(getDeviceInfo);
   const [user, setUser] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [toast, setToast] = useState('');
@@ -56,6 +58,25 @@ export default function App() {
   useEffect(() => {
     checkUser();
     loadPhotos();
+
+    const info = getDeviceInfo();
+    setDeviceInfo(info);
+    document.documentElement.setAttribute('data-device', info.deviceType);
+    document.documentElement.setAttribute('data-platform', info.isMobile ? 'mobile' : 'desktop');
+
+    const handleResize = () => {
+      const updated = getDeviceInfo();
+      setDeviceInfo(updated);
+      document.documentElement.setAttribute('data-device', updated.deviceType);
+      document.documentElement.setAttribute('data-platform', updated.isMobile ? 'mobile' : 'desktop');
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -131,11 +152,16 @@ export default function App() {
     <div className="app-shell">
       {/* Topbar */}
       <header className="topbar">
-        <a href="/" className="brand">
-          <div className="brand-symbol">✦</div>
-          <span className="brand-title">Snap Studio</span>
-          <span className="brand-tech">Dark Mode</span>
-        </a>
+        <div className="brand-group">
+          <a href="/" className="brand">
+            <div className="brand-symbol">✦</div>
+            <span className="brand-title">Snap Studio</span>
+            <span className="brand-tech">Dark Mode</span>
+          </a>
+          <span className={`device-indicator-pill ${deviceInfo.deviceType}`} title={`Perangkat terdeteksi: ${deviceInfo.deviceName}`}>
+            {deviceInfo.isIOS ? '🍎 iOS' : deviceInfo.isAndroid ? '🤖 Android' : '💻 Desktop'}
+          </span>
+        </div>
 
         <div className="topbar-actions">
           {user ? (
@@ -239,6 +265,7 @@ export default function App() {
             </div>
 
             <CameraView
+              deviceInfo={deviceInfo}
               selectedTheme={selectedTheme}
               onChangeTheme={() => setCurrentStep('theme')}
               onPhotoSaved={loadPhotos}
