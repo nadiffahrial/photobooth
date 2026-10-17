@@ -152,6 +152,24 @@ class PhotoboothTests(unittest.TestCase):
         response = self.client.delete("/api/photos/../secret.png")
         self.assertEqual(response.status_code, 404)
 
+    def test_ai_pose_endpoint(self):
+        response = self.client.get("/api/ai/pose")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("pose", response.get_json())
+        self.assertTrue(len(response.get_json()["pose"]) > 5)
+
+    def test_ai_photo_caption_endpoint(self):
+        self.client.get("/guest")
+        img = io.BytesIO()
+        Image.new("RGB", (20, 20), color="#ffffff").save(img, format="PNG")
+        img.seek(0)
+        upload_res = self.client.post("/api/photos", data={"photo": (img, "p.png")}, content_type="multipart/form-data")
+        filename = upload_res.get_json()["name"]
+
+        response = self.client.post(f"/api/photos/{filename}/caption")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("caption", response.get_json())
+
 
 if __name__ == "__main__":
     unittest.main()

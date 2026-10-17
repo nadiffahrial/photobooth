@@ -28,15 +28,45 @@
             </div>
         </header>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-banner-wrapper">
+                    {% for category, message in messages %}
+                        <div class="flash-banner flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         <section class="hero">
             <div class="hero-copy">
-                <p class="eyebrow">YOUR MOMENT, CAPTURED</p>
-                <h1>Jadikan setiap<br><em>momen</em> berkesan.</h1>
+                <p class="eyebrow">{% if user %}KOLEKSI PRIBADI {{ (user.display_name or user.username)|upper }}{% else %}YOUR MOMENT, CAPTURED{% endif %}</p>
+                <h1>
+                    {% if user %}
+                        Halo, <em>{{ user.display_name or user.username }}</em>!<br>Yuk abadikan gayamu.
+                    {% else %}
+                        Jadikan setiap<br><em>momen</em> berkesan.
+                    {% endif %}
+                </h1>
                 <p class="intro">Tekan tombol untuk aktifkan kamera dan mulai foto otomatis setiap 5 detik.</p>
-                <button class="primary-button" id="startCamera" type="button">
-                    <span>Mulai foto otomatis</span><span aria-hidden="true">↗</span>
-                </button>
-                <p class="privacy-note">Foto hanya disimpan di komputer ini. Kamera tidak diunggah ke server lain.</p>
+                <div class="hero-action-group">
+                    <button class="primary-button" id="startCamera" type="button">
+                        <span>Mulai foto otomatis</span><span aria-hidden="true">↗</span>
+                    </button>
+                    <button class="ai-button" id="getAiPose" type="button" title="Dapatkan rekomendasi pose keren dari AI">
+                        <span>✨ Ide Pose AI</span>
+                    </button>
+                </div>
+
+                <div class="ai-pose-box" id="aiPoseBox" hidden>
+                    <div class="ai-pose-header">
+                        <span class="ai-badge">🤖 SnapBot AI</span>
+                        <button type="button" class="close-pose-btn" id="closePoseBox" aria-label="Tutup ide pose">×</button>
+                    </div>
+                    <p class="ai-pose-text" id="aiPoseText"></p>
+                </div>
+
+                <p class="privacy-note">Foto disimpan aman di akun Anda. Kamera tidak diunggah ke server lain.</p>
             </div>
 
             <div class="camera-card" id="cameraCard">
@@ -85,8 +115,8 @@
         <section class="gallery-section" id="gallerySection" aria-labelledby="galleryTitle">
             <div class="section-heading">
                 <div>
-                    <p class="eyebrow">YOUR COLLECTION</p>
-                    <h2 id="galleryTitle">Foto terbaru</h2>
+                    <p class="eyebrow">{% if user %}GALERI PRIBADI {{ (user.display_name or user.username)|upper }}{% else %}YOUR COLLECTION{% endif %}</p>
+                    <h2 id="galleryTitle">{% if user %}Koleksi Foto {{ user.display_name or user.username }}{% else %}Foto terbaru{% endif %}</h2>
                 </div>
                 <button class="text-button" id="refreshGallery" type="button">Segarkan ▻</button>
             </div>
@@ -98,6 +128,22 @@
             </div>
         </section>
     </main>
+
+    <!-- Modal AI Caption -->
+    <div class="modal-backdrop" id="aiCaptionModal" hidden>
+        <div class="modal-card">
+            <div class="modal-header">
+                <span class="ai-badge">✨ Caption Otomatis AI</span>
+                <button type="button" class="close-modal-btn" id="closeCaptionModal">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="captionText" class="caption-content">Membuat caption estetik...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="copy-btn" id="copyCaptionBtn" type="button">📋 Salin Caption</button>
+            </div>
+        </div>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="../static/js/app.js" defer></script>

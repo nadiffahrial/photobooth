@@ -231,6 +231,64 @@ def health():
     return jsonify({"status": "ok", "upload_dir": str(UPLOAD_DIR)})
 
 
+DEFAULT_POSES = [
+    "Pose 'Heart-Cheek' 🫰: Tempelkan jari telunjuk dan jempol membentuk setengah hati di pipi sambil tersenyum!",
+    "Pose 'Peace & Wink' ✌️: Tunjukkan tanda V di dekat mata kanan lalu kedipkan mata kiri dengan ceria!",
+    "Pose 'The Candid Laugh' 😄: Toleh sedikit ke samping sambil tertawa lepas seolah ada hal lucu!",
+    "Pose 'Finger Frame' 📸: Buat bingkai foto mini dengan kedua tanganmu tepat di depan wajah!",
+    "Pose 'Cat Paws' 🐾: Kepalkan kedua tangan seperti cakar kucing yang lucu di samping pipi!",
+    "Pose 'Thinking Cute' 🤔: Topang dagumu dengan satu tangan sambil memandang kamera dengan tatapan ramah!",
+]
+
+
+@app.get("/api/ai/pose")
+def get_ai_pose():
+    import random
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return jsonify({"pose": random.choice(DEFAULT_POSES)})
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-flash-lite-latest",
+            contents="Berikan 1 ide pose photobooth yang seru, ekspresif, dan estetik dalam 1-2 kalimat singkat beserta emoji."
+        )
+        return jsonify({"pose": response.text.strip()})
+    except Exception:
+        return jsonify({"pose": random.choice(DEFAULT_POSES)})
+
+
+@app.post("/api/photos/<path:filename>/caption")
+def get_photo_caption(filename: str):
+    user = get_current_user()
+    user_name = user["display_name"] if user else "Kawan"
+
+    photo_path = current_app.config["UPLOAD_DIR"] / filename
+    if not photo_path.is_file():
+        return jsonify({"error": "Foto tidak ditemukan."}), 404
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return jsonify({"caption": f"Momen terbaik bersama {user_name} di Snap Studio! ✨📸 #SnapStudio #GoodVibes"})
+
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        prompt = (
+            f"Kamu adalah AI asisten photobooth Snap Studio. Buatkan 1 caption Instagram singkat (maks 2 kalimat) "
+            f"yang aesthetic, ceria, dan seru untuk foto photobooth milik {user_name}. Berikan 2 hashtag keren."
+        )
+        response = client.models.generate_content(
+            model="gemini-flash-lite-latest",
+            contents=prompt,
+        )
+        return jsonify({"caption": response.text.strip()})
+    except Exception:
+        return jsonify({"caption": f"Momen berkesan di Snap Studio bersama {user_name}! 📸✨ #Photobooth #SnapMoment"})
+
+
 if __name__ == "__main__":
     import sys
     os.environ.setdefault("FLASK_ENV", "development")

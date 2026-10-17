@@ -12,7 +12,15 @@ const elements = {
     galleryGrid: document.querySelector('#galleryGrid'),
     refreshGallery: document.querySelector('#refreshGallery'),
     frameOptions: [...document.querySelectorAll('.frame-option')],
-    toast: document.querySelector('#toast')
+    toast: document.querySelector('#toast'),
+    getAiPose: document.querySelector('#getAiPose'),
+    aiPoseBox: document.querySelector('#aiPoseBox'),
+    aiPoseText: document.querySelector('#aiPoseText'),
+    closePoseBox: document.querySelector('#closePoseBox'),
+    aiCaptionModal: document.querySelector('#aiCaptionModal'),
+    captionText: document.querySelector('#captionText'),
+    closeCaptionModal: document.querySelector('#closeCaptionModal'),
+    copyCaptionBtn: document.querySelector('#copyCaptionBtn')
 };
 
 let stream = null;
@@ -181,6 +189,7 @@ function createPhotoCard(photo) {
         <img src="${photo.url}" alt="Foto hasil photobooth">
         <div class="photo-actions">
             <a class="photo-action" href="${photo.url}" download>Unduh</a>
+            <button class="photo-action ai-btn" type="button" data-ai="${photo.name}" title="Buatkan Caption AI">✨ AI</button>
             <button class="photo-action danger" type="button" data-delete="${photo.name}">Hapus</button>
         </div>`;
     return item;
@@ -216,6 +225,46 @@ async function deletePhoto(filename) {
     }
 }
 
+async function requestAiPose() {
+    if (!elements.aiPoseBox || !elements.aiPoseText) return;
+    elements.getAiPose.disabled = true;
+    elements.getAiPose.querySelector('span').textContent = '🤖 Berpikir...';
+    try {
+        const res = await fetch('/api/ai/pose');
+        const data = await res.json();
+        elements.aiPoseText.textContent = data.pose || 'Tersenyumlah lebar dan tunjukkan gaya terbaikmu!';
+        elements.aiPoseBox.hidden = false;
+    } catch (err) {
+        showToast('Gagal memuat rekomendasi pose.');
+    } finally {
+        elements.getAiPose.disabled = false;
+        elements.getAiPose.querySelector('span').textContent = '✨ Ide Pose AI';
+    }
+}
+
+async function generateAiCaption(filename) {
+    if (!elements.aiCaptionModal || !elements.captionText) return;
+    elements.aiCaptionModal.hidden = false;
+    elements.captionText.textContent = '🤖 Menyusun caption estetik dengan AI...';
+    try {
+        const res = await fetch(`/api/photos/${encodeURIComponent(filename)}/caption`, { method: 'POST' });
+        const data = await res.json();
+        elements.captionText.textContent = data.caption || 'Momen seru tak terlupakan di Snap Studio! ✨📸';
+    } catch (err) {
+        elements.captionText.textContent = 'Momen seru di Snap Studio! ✨📸 #SnapMoment';
+    }
+}
+
+function copyCaptionToClipboard() {
+    if (!elements.captionText) return;
+    const text = elements.captionText.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Caption disalin ke clipboard! 📋');
+    }).catch(() => {
+        showToast('Gagal menyalin caption.');
+    });
+}
+
 async function flipCameraDirection() {
     facingMode = facingMode === 'user' ? 'environment' : 'user';
     stopCamera();
@@ -237,9 +286,41 @@ elements.flipCamera.addEventListener('click', flipCameraDirection);
 elements.stopCamera.addEventListener('click', stopCamera);
 elements.refreshGallery.addEventListener('click', loadPhotos);
 elements.frameOptions.forEach(option => option.addEventListener('click', () => selectFrame(option.dataset.frame)));
+
+if (elements.getAiPose) {
+    elements.getAiPose.addEventListener('click', requestAiPose);
+}
+if (elements.closePoseBox) {
+    elements.closePoseBox.addEventListener('click', () => {
+        elements.aiPoseBox.hidden = true;
+    });
+}
+if (elements.closeCaptionModal) {
+    elements.closeCaptionModal.addEventListener('click', () => {
+        elements.aiCaptionModal.hidden = true;
+    });
+}
+if (elements.copyCaptionBtn) {
+    elements.copyCaptionBtn.addEventListener('click', copyCaptionToClipboard);
+}
+if (elements.aiCaptionModal) {
+    elements.aiCaptionModal.addEventListener('click', (e) => {
+        if (e.target === elements.aiCaptionModal) {
+            elements.aiCaptionModal.hidden = true;
+        }
+    });
+}
+
 elements.galleryGrid.addEventListener('click', event => {
-    const button = event.target.closest('[data-delete]');
-    if (button) deletePhoto(button.dataset.delete);
+    const deleteBtn = event.target.closest('[data-delete]');
+    if (deleteBtn) {
+        deletePhoto(deleteBtn.dataset.delete);
+        return;
+    }
+    const aiBtn = event.target.closest('[data-ai]');
+    if (aiBtn) {
+        generateAiCaption(aiBtn.dataset.ai);
+    }
 });
 
 window.addEventListener('beforeunload', stopCamera);
