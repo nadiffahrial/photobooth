@@ -93,9 +93,13 @@
                 </div>
 
                 <div class="camera-controls">
+                    <div class="mode-switch-wrapper" role="radiogroup" aria-label="Pilih Mode Pengambilan">
+                        <button class="mode-pill is-active" id="modeSingle" type="button" aria-pressed="true">📸 Foto Satuan</button>
+                        <button class="mode-pill" id="modeStrip" type="button" aria-pressed="false">🎞️ Mode Strip 3 Foto</button>
+                    </div>
                     <div class="camera-meta">
                         <span id="cameraStatus">Kamera tidak aktif</span>
-                        <span>1080p · 30fps</span>
+                        <span id="burstStatus">1080p · 30fps</span>
                     </div>
                     <div class="frame-picker" aria-label="Pilih gaya border">
                         <span class="frame-picker-label">Border</span>
@@ -121,7 +125,10 @@
                     <p class="eyebrow">{% if user %}GALERI PRIBADI {{ (user.display_name or user.username)|upper }}{% else %}YOUR COLLECTION{% endif %}</p>
                     <h2 id="galleryTitle">{% if user %}Koleksi Foto {{ user.display_name or user.username }}{% else %}Foto terbaru{% endif %}</h2>
                 </div>
-                <button class="text-button" id="refreshGallery" type="button">Segarkan ▻</button>
+                <div class="gallery-action-group">
+                    <button class="text-button btn-strip" id="openStripFromGallery" type="button">🎞️ Buat Strip 3 Foto ▻</button>
+                    <button class="text-button" id="refreshGallery" type="button">Segarkan ▻</button>
+                </div>
             </div>
             <div class="gallery-grid" id="galleryGrid">
                 <div class="empty-gallery">
@@ -131,6 +138,44 @@
             </div>
         </section>
     </main>
+
+    <!-- Modal Photobooth Strip 3 Foto Maker -->
+    <div class="modal-backdrop" id="stripModal" hidden>
+        <div class="modal-card strip-modal-card">
+            <div class="modal-header">
+                <div>
+                    <span class="ai-badge">🎞️ Photobooth 3-Strip Builder</span>
+                    <h3 class="modal-title" style="margin:4px 0 0; font-size:1.2rem;">Strip 3 Foto Vertikal</h3>
+                </div>
+                <button type="button" class="close-modal-btn" id="closeStripModal">×</button>
+            </div>
+            
+            <div class="strip-theme-section">
+                <span class="theme-label">PILIH GAYA BORDER STRIP:</span>
+                <div class="strip-theme-picker" id="stripThemePicker">
+                    <button type="button" class="theme-chip is-active" data-theme="film-noir">🎞️ Film Noir (35mm)</button>
+                    <button type="button" class="theme-chip" data-theme="haru-pastel">🌸 Haru Pastel (Korea)</button>
+                    <button type="button" class="theme-chip" data-theme="y2k-cyber">⚡ Y2K Cyber (Neon)</button>
+                    <button type="button" class="theme-chip" data-theme="vintage-retro">📜 Vintage Sepia</button>
+                    <button type="button" class="theme-chip" data-theme="minimal-luxury">🤍 Minimal Luxury</button>
+                    <button type="button" class="theme-chip" data-theme="matcha-kawaii">🍵 Matcha Cute</button>
+                </div>
+            </div>
+
+            <div class="strip-preview-stage">
+                <div class="strip-canvas-wrapper">
+                    <canvas id="stripCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="strip-modal-footer">
+                <button type="button" class="btn-secondary" id="saveStripToGallery">☁️ Simpan ke Galeri</button>
+                <button type="button" class="primary-button" id="downloadStripBtn">
+                    <span>Unduh Strip (PNG)</span><span aria-hidden="true">↓</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal AI Caption -->
     <div class="modal-backdrop" id="aiCaptionModal" hidden>
