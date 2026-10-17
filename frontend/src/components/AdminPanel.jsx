@@ -61,6 +61,7 @@ export default function AdminPanel({ isOpen, onClose, showToast }) {
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" style={{ maxWidth: '640px' }}>
+        <div className="modal-drag-handle" />
         <div className="modal-header">
           <div>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>

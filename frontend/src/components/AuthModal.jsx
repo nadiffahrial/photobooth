@@ -43,6 +43,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, showToast })
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" style={{ maxWidth: '420px' }}>
+        <div className="modal-drag-handle" />
         <div className="modal-header">
           <div>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' }}>

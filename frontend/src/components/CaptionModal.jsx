@@ -14,6 +14,7 @@ export default function CaptionModal({ isOpen, onClose, caption, showToast }) {
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content" style={{ maxWidth: '440px' }}>
+        <div className="modal-drag-handle" />
         <div className="modal-header">
           <div>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' }}>

@@ -75,6 +75,7 @@ export default function StripModal({ isOpen, onClose, frames, onSaved, showToast
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content">
+        <div className="modal-drag-handle" />
         <div className="modal-header">
           <div>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#7b3cff', textTransform: 'uppercase' }}>
