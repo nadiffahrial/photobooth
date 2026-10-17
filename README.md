@@ -9,9 +9,9 @@ Aplikasi photobooth modern dengan dua pilihan teknologi yang saling terintegrasi
 
 ## Fitur Utama
 
-- 📸 **Live Webcam Stream**: Pratinjau kamera waktu nyata dengan rotasi mirror dan peralihan kamera depan/belakang (*environment/user*).
+- 📸 **Live Webcam Stream & Multi-Lens**: Pratinjau kamera waktu nyata dengan dukungan ultra-wide (0.5x), 1x, 2x, peralihan kamera depan/belakang, dan rasio adaptif (3:4 portrait untuk mobile iOS/Android & 4:3 widescreen untuk desktop).
 - 🎞️ **Photobooth 3-Strip Vertical Builder**:
-  - Mode burst otomatis dengan hitung mundur 3 detik per pose (Pose 1/3, 2/3, 3/3) & efek flash lampu.
+  - Alur otomatis: Pilih template border strip -> Sesi 3 pose burst dengan countdown modern bottom-docked -> Soft file strip beresolusi tinggi.
   - Opsi buat strip dari 3 foto galeri yang sudah ada.
   - **6 Tema Eksklusif**:
     1. *Film Noir (35mm Kodak Tri-X)*
@@ -20,12 +20,11 @@ Aplikasi photobooth modern dengan dua pilihan teknologi yang saling terintegrasi
     4. *Vintage Sepia (Antique Newspaper)*
     5. *Minimal Luxury (Vogue Atelier)*
     6. *Matcha Cute (Sage Green & Doodles)*
-  - Unduh strip kualitas tinggi (800 × 1980 px) atau simpan langsung ke galeri cloud.
-- ✨ **AI Smart Assistant (Google Gemini)**:
-  - Ide Pose Photobooth otomatis (`/api/ai/pose`).
-  - Pembuat Caption Instagram estetik otomatis (`/api/photos/:filename/caption`).
-- 🔐 **Sistem Autentikasi & Role**:
-  - Role **Admin** dan **User**.
+- 📲 **Soft File via QR Code Instan**: Setelah sesi foto berakhir, soft file strip dan foto langsung dapat diunduh ke smartphone pengguna via pemindaian kode QR otomatis.
+- 🔐 **Sistem Autentikasi & Cyber Security Hardened**:
+  - **Auth Gate**: Halaman Masuk/Daftar wajib sebelum memulai photobooth.
+  - **Metode Login Tambahan**: Opsi masuk dengan Akun Google, Apple ID, serta Masuk Cepat sebagai Tamu Kios tanpa kata sandi.
+  - Proteksi Helmet, Content Security Policy (CSP), HTTP Strict Rate Limiting, Validasi Magic Bytes, RBAC, dan Safe HttpOnly Cookie Session.
   - Dashboard panel admin untuk kelola pengguna dan role.
   - Akun admin bawaan: `admin` / `admin123`.
 
