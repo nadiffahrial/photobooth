@@ -443,3 +443,4 @@ export function render3StripCanvas(canvas, framesInput = [], theme = 'film-noir'
     ctx.fillText('✦ snap studio · matcha edition · 2026 ✦', W / 2, 1815);
   }
 }
+

@@ -146,3 +146,4 @@ export default function AdminPanel({ isOpen, onClose, showToast }) {
     </div>
   );
 }
+

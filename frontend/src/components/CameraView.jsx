@@ -334,3 +334,4 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
     </div>
   );
 }
+

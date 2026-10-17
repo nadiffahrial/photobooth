@@ -65,3 +65,4 @@ export default function GalleryView({ photos = [], onDeletePhoto, onGenerateCapt
     </section>
   );
 }
+

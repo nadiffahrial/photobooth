@@ -129,3 +129,4 @@ export default function StripModal({ isOpen, onClose, frames, onSaved, showToast
     </div>
   );
 }
+
