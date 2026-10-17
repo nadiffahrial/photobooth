@@ -205,6 +205,54 @@ class PhotoboothTests(unittest.TestCase):
         self.assertEqual(del_resp.status_code, 200)
         self.assertIsNone(db.get_user_by_id(self.app.config["DATABASE_PATH"], target_user["id"]))
 
+    def test_security_headers_present(self):
+        response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(response.headers.get("X-Frame-Options"), "SAMEORIGIN")
+        self.assertIn("Content-Security-Policy", response.headers)
+
+    def test_xss_sanitization_in_display_name(self):
+        user = db.create_user(
+            self.app.config["DATABASE_PATH"],
+            username="safename",
+            password="password123",
+            display_name="<script>alert('xss')</script>Jessica",
+        )
+        self.assertNotIn("<script>", user["display_name"])
+        self.assertNotIn("</script>", user["display_name"])
+        self.assertIn("Jessica", user["display_name"])
+
+    def test_password_length_limits(self):
+        # Terlalu panjang (>128 chars)
+        with self.assertRaises(ValueError):
+            db.create_user(
+                self.app.config["DATABASE_PATH"],
+                username="longpass",
+                password="a" * 129,
+            )
+
+    def test_change_password(self):
+        self.client.post(
+            "/register",
+            data={"username": "changeme", "password": "password123", "password_confirm": "password123"},
+        )
+        # Ganti password dengan password lama yang benar
+        resp = self.client.post(
+            "/api/auth/change-password",
+            json={"current_password": "password123", "new_password": "newpassword456"},
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        # Logout dan login dengan password baru
+        self.client.get("/logout")
+        new_login = self.client.post(
+            "/login",
+            data={"username": "changeme", "password": "newpassword456"},
+            follow_redirects=True,
+        )
+        self.assertEqual(new_login.status_code, 200)
+
 
 if __name__ == "__main__":
     unittest.main()

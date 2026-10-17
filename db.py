@@ -97,7 +97,8 @@ def create_user(
 ) -> Dict[str, Any]:
     username = (username or "").strip()
     password = password or ""
-    display_name = (display_name or "").strip() or username
+    raw_name = (display_name or "").strip() or username
+    clean_name = re.sub(r"[<>&\"']", "", raw_name)[:50].strip() or username
     role = "admin" if role == "admin" else "user"
 
     if not USERNAME_PATTERN.match(username):
@@ -105,6 +106,9 @@ def create_user(
 
     if len(password) < 6:
         raise ValueError("Password minimal 6 karakter.")
+
+    if len(password) > 128:
+        raise ValueError("Password maksimal 128 karakter.")
 
     password_hash = generate_password_hash(password)
 
@@ -116,7 +120,7 @@ def create_user(
                 INSERT INTO users (username, password_hash, display_name, role)
                 VALUES (?, ?, ?, ?)
                 """,
-                (username, password_hash, display_name, role),
+                (username, password_hash, clean_name, role),
             )
             user_id = cursor.lastrowid
             cursor.execute("SELECT id, username, display_name, role, created_at FROM users WHERE id = ?", (user_id,))
@@ -124,6 +128,26 @@ def create_user(
             return dict(row)
     except sqlite3.IntegrityError:
         raise ValueError("Username sudah digunakan. Silakan pilih username lain.")
+
+
+def change_password(db_path: Path | str, user_id: int, current_password: str, new_password: str) -> bool:
+    if not current_password or not new_password:
+        raise ValueError("Password saat ini dan password baru wajib diisi.")
+    if len(new_password) < 6:
+        raise ValueError("Password baru minimal 6 karakter.")
+    if len(new_password) > 128:
+        raise ValueError("Password baru maksimal 128 karakter.")
+
+    with db_session(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row or not check_password_hash(row["password_hash"], current_password):
+            raise ValueError("Password saat ini tidak cocok.")
+
+        new_hash = generate_password_hash(new_password)
+        cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
+        return cursor.rowcount > 0
 
 
 def verify_user(db_path: Path | str, username: str, password: str) -> Optional[Dict[str, Any]]:

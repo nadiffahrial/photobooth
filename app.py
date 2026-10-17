@@ -22,19 +22,59 @@ from PIL import Image, UnidentifiedImageError
 
 import db
 
+import re
+
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "photos"
 DATABASE_PATH = BASE_DIR / "photobooth.db"
 MAX_IMAGE_SIZE = 8 * 1024 * 1024
+FILENAME_PATTERN = re.compile(r"^photo_[a-zA-Z0-9_.-]+\.png$")
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "snap-studio-secret-key-2026-secure")
 app.config["UPLOAD_DIR"] = UPLOAD_DIR
 app.config["DATABASE_PATH"] = DATABASE_PATH
 app.config["MAX_CONTENT_LENGTH"] = MAX_IMAGE_SIZE
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = 86400
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 db.init_db(DATABASE_PATH, UPLOAD_DIR)
+
+# Security Hardening: Anti-Brute Force In-Memory Limiter
+_auth_rate_limit: dict[str, list[float]] = {}
+
+
+def is_auth_rate_limited(ip: str, max_attempts: int = 15, window_sec: int = 60) -> bool:
+    if current_app.config.get("TESTING"):
+        return False
+    now = datetime.now().timestamp()
+    history = _auth_rate_limit.setdefault(ip, [])
+    _auth_rate_limit[ip] = [t for t in history if now - t < window_sec]
+    if len(_auth_rate_limit[ip]) >= max_attempts:
+        return True
+    _auth_rate_limit[ip].append(now)
+    return False
+
+
+@app.after_request
+def apply_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: blob:; "
+        "media-src 'self' blob:; "
+        "connect-src 'self';"
+    )
+    return response
 
 
 def get_current_user():
@@ -69,6 +109,14 @@ def login():
         return redirect(url_for("index"))
 
     if request.method == "POST":
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+        if is_auth_rate_limited(ip):
+            error_message = "Terlalu banyak percobaan masuk dari IP Anda. Harap tunggu 1 menit."
+            if request.is_json:
+                return jsonify({"error": error_message}), 429
+            flash(error_message, "error")
+            return render_template("login.html"), 429
+
         data = request.get_json(silent=True) or request.form
         username = data.get("username", "").strip()
         password = data.get("password", "")
@@ -102,6 +150,14 @@ def register():
         return redirect(url_for("index"))
 
     if request.method == "POST":
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+        if is_auth_rate_limited(ip):
+            error_message = "Terlalu banyak percobaan pendaftaran dari IP Anda. Harap tunggu 1 menit."
+            if request.is_json:
+                return jsonify({"error": error_message}), 429
+            flash(error_message, "error")
+            return render_template("register.html"), 429
+
         data = request.get_json(silent=True) or request.form
         username = data.get("username", "").strip()
         password = data.get("password", "")
@@ -273,7 +329,7 @@ def save_photo():
 
 @app.delete("/api/photos/<path:filename>")
 def delete_photo(filename: str):
-    if filename in {".", ".."} or Path(filename).name != filename:
+    if not FILENAME_PATTERN.match(filename) or filename in {".", ".."} or Path(filename).name != filename:
         return jsonify({"error": "Gambar tidak ditemukan."}), 404
 
     target = current_app.config["UPLOAD_DIR"] / filename
@@ -291,6 +347,23 @@ def delete_photo(filename: str):
         return jsonify({"success": True, "name": filename})
 
     return jsonify({"error": "Anda tidak memiliki izin untuk menghapus gambar ini."}), 403
+
+
+@app.post("/api/auth/change-password")
+def api_change_password():
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Harap masuk terlebih dahulu."}), 401
+
+    data = request.get_json(silent=True) or request.form
+    cur_pass = data.get("current_password", "")
+    new_pass = data.get("new_password", "")
+
+    try:
+        db.change_password(current_app.config["DATABASE_PATH"], user["id"], cur_pass, new_pass)
+        return jsonify({"success": True, "message": "Password berhasil diperbarui."}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @app.get("/photos/<path:filename>")
