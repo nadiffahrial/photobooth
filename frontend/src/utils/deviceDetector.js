@@ -1,7 +1,7 @@
 /**
  * Device Detector Utility for Snap Studio Photobooth
  * Identifies iOS (iPhone/iPad), Android, and Desktop platforms
- * to tailor camera aspect ratio, UI touch controls, and ultra-wide lens support.
+ * to tailor camera aspect ratio, UI touch controls, and cross-platform mobile layouts.
  */
 
 export function getDeviceInfo() {

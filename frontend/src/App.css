@@ -408,62 +408,6 @@ body {
   border-color: var(--accent);
 }
 
-/* Floating Lens Selector Bar (Ultra-Wide 0.5x, 1x, 2x) */
-.camera-lens-bar {
-  position: absolute;
-  bottom: 82px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(14, 10, 22, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  padding: 4px 8px;
-  border-radius: 100px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
-  z-index: 30;
-}
-
-.lens-chip {
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: var(--font-body);
-  font-size: 0.76rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 100px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.lens-chip:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
-}
-.lens-chip.is-active {
-  background: #ffffff;
-  color: #0d0a16;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.85);
-}
-.lens-chip .lens-sub {
-  font-size: 0.52rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  background: rgba(168, 85, 247, 0.25);
-  color: #a855f7;
-  padding: 1px 4px;
-  border-radius: 4px;
-}
-.lens-chip.is-active .lens-sub {
-  background: rgba(13, 10, 22, 0.18);
-  color: #0d0a16;
-}
 
 /* iOS Safari Tip */
 .ios-safari-tip {
@@ -1550,9 +1494,6 @@ body {
   }
   .compact-bottom-timer {
     bottom: max(20px, calc(env(safe-area-inset-bottom) + 12px));
-  }
-  .camera-lens-bar {
-    bottom: max(80px, calc(env(safe-area-inset-bottom) + 72px));
   }
 }
 

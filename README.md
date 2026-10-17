@@ -9,7 +9,7 @@ Aplikasi photobooth modern dengan dua pilihan teknologi yang saling terintegrasi
 
 ## Fitur Utama
 
-- 📸 **Live Webcam Stream & Multi-Lens**: Pratinjau kamera waktu nyata dengan dukungan ultra-wide (0.5x), 1x, 2x, peralihan kamera depan/belakang, dan rasio adaptif (3:4 portrait untuk mobile iOS/Android & 4:3 widescreen untuk desktop).
+- 📸 **Live Webcam Stream**: Pratinjau kamera waktu nyata dengan peralihan kamera depan/belakang, dan rasio adaptif (3:4 portrait untuk mobile iOS/Android & 4:3 widescreen untuk desktop).
 - 🎞️ **Photobooth 3-Strip Vertical Builder**:
   - Alur otomatis: Pilih template border strip -> Sesi 3 pose burst dengan countdown modern bottom-docked -> Soft file strip beresolusi tinggi.
   - Opsi buat strip dari 3 foto galeri yang sudah ada.

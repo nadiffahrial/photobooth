@@ -62,13 +62,6 @@ export default function CameraView({
   // Dynamic Camera Ratio: 3:4 for Mobile (iOS & Android) | 4:3 for Desktop
   const [aspectRatioMode, setAspectRatioMode] = useState(isMobileInitial ? 'portrait' : 'landscape');
 
-  // Ultra-Wide (0.5x) and Multi-Lens States
-  const [activeLens, setActiveLens] = useState('1x'); // '0.5x' | '1x' | '2x'
-  const [availableCameras, setAvailableCameras] = useState([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState('');
-  const [zoomCapabilities, setZoomCapabilities] = useState(null);
-  const [hasHardwareUltraWide, setHasHardwareUltraWide] = useState(false);
-
   const videoRef = useRef(null);
   const autoTimerRef = useRef(null);
 
@@ -86,14 +79,13 @@ export default function CameraView({
   };
 
   // Start Camera with Dynamic Resolution and Aspect Ratio
-  const startCamera = async (overrideFacing, overrideDeviceId, overrideRatio) => {
+  const startCamera = async (overrideFacing, overrideRatio) => {
     if (!navigator.mediaDevices?.getUserMedia) {
       showToast('Kamera tidak didukung di peramban ini.');
       return;
     }
 
     const currentFacing = overrideFacing || facingMode;
-    const currentDeviceId = overrideDeviceId !== undefined ? overrideDeviceId : selectedDeviceId;
     const currentRatio = overrideRatio || aspectRatioMode;
     const isPortrait = currentRatio === 'portrait';
 
@@ -103,8 +95,7 @@ export default function CameraView({
 
       // Video constraints tailored per device & ratio
       const videoConstraints = {
-        facingMode: currentDeviceId ? undefined : { ideal: currentFacing },
-        deviceId: currentDeviceId ? { exact: currentDeviceId } : undefined,
+        facingMode: { ideal: currentFacing },
         width: isPortrait ? { ideal: 1080 } : { ideal: 1920 },
         height: isPortrait ? { ideal: 1440 } : { ideal: 1440 },
         aspectRatio: isPortrait ? { ideal: 0.75 } : { ideal: 1.333333 }
@@ -135,31 +126,6 @@ export default function CameraView({
           ? 'Kamera aktif · Rasio 3:4 Portrait (Mobile)'
           : 'Kamera aktif · Rasio 4:3 Landscape (Desktop)'
       );
-
-      // Check track capabilities for hardware zoom and ultra-wide
-      const track = mediaStream.getVideoTracks()[0];
-      if (track) {
-        const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-        if (capabilities.zoom) {
-          setZoomCapabilities(capabilities.zoom);
-          if (capabilities.zoom.min <= 0.7) {
-            setHasHardwareUltraWide(true);
-          }
-        }
-      }
-
-      // Enumerate camera devices to detect multi-lenses (common on iPhone & Android)
-      if (navigator.mediaDevices.enumerateDevices) {
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const videoInputs = devices.filter((d) => d.kind === 'videoinput');
-          setAvailableCameras(videoInputs);
-          const ultra = videoInputs.find((d) => /ultra|0\.5|wide-angle|superwide/i.test(d.label));
-          if (ultra) {
-            setHasHardwareUltraWide(true);
-          }
-        } catch {}
-      }
     } catch (err) {
       console.error(err);
       const isIOS = deviceInfo?.isIOS;
@@ -189,66 +155,7 @@ export default function CameraView({
     triggerHaptic(20);
     const nextMode = facingMode === 'user' ? 'environment' : 'user';
     setFacingMode(nextMode);
-    setSelectedDeviceId('');
-    setActiveLens('1x');
-    await startCamera(nextMode, '', aspectRatioMode);
-  };
-
-  // Ultra-Wide (0.5x) / 1x / 2x Lens Switcher
-  const handleSelectLens = async (lens) => {
-    triggerHaptic(20);
-    setActiveLens(lens);
-
-    if (!stream) return;
-    const track = stream.getVideoTracks()[0];
-    if (!track) return;
-
-    if (lens === '0.5x') {
-      // 1. Check if hardware zoom <= 0.7 is supported (iOS 17+ / Android)
-      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-      if (capabilities.zoom && capabilities.zoom.min <= 0.7) {
-        try {
-          await track.applyConstraints({ advanced: [{ zoom: capabilities.zoom.min }] });
-          showToast('Mode Ultra-Wide 0.5x aktif! 🌐');
-          return;
-        } catch {}
-      }
-
-      // 2. Check if a dedicated physical ultra-wide camera device exists
-      const ultraDevice = availableCameras.find((d) => /ultra|0\.5|wide-angle|superwide/i.test(d.label));
-      if (ultraDevice && ultraDevice.deviceId !== selectedDeviceId) {
-        setSelectedDeviceId(ultraDevice.deviceId);
-        setFacingMode('environment');
-        await startCamera('environment', ultraDevice.deviceId, aspectRatioMode);
-        showToast('Kamera Ultra-Wide fisik aktif! 🌐');
-        return;
-      }
-
-      // 3. Fallback info
-      showToast('Mode Bidang Pandang Lebar (Ultra-Wide) diaktifkan. 🌐');
-    } else if (lens === '1x') {
-      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-      if (capabilities.zoom) {
-        try {
-          await track.applyConstraints({ advanced: [{ zoom: 1.0 }] });
-        } catch {}
-      }
-      if (selectedDeviceId) {
-        setSelectedDeviceId('');
-        await startCamera(facingMode, '', aspectRatioMode);
-      }
-      showToast('Kamera Standar 1x aktif.');
-    } else if (lens === '2x') {
-      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-      if (capabilities.zoom && capabilities.zoom.max >= 2.0) {
-        try {
-          await track.applyConstraints({ advanced: [{ zoom: 2.0 }] });
-          showToast('Telephoto Zoom 2x aktif! 🔍');
-          return;
-        } catch {}
-      }
-      showToast('Zoom 2x diaktifkan.');
-    }
+    await startCamera(nextMode, aspectRatioMode);
   };
 
   // Toggle Aspect Ratio manually between Portrait (3:4) and Landscape (4:3)
@@ -256,7 +163,7 @@ export default function CameraView({
     triggerHaptic(15);
     const nextRatio = aspectRatioMode === 'portrait' ? 'landscape' : 'portrait';
     setAspectRatioMode(nextRatio);
-    startCamera(facingMode, selectedDeviceId, nextRatio);
+    startCamera(facingMode, nextRatio);
     showToast(
       nextRatio === 'portrait'
         ? 'Rasio Kamera: 3:4 Portrait (Cocok untuk Mobile / Strip Vertikal) 📱'
@@ -440,37 +347,6 @@ export default function CameraView({
               : 'OFFLINE'}
           </span>
         </div>
-
-        {/* FLOATING LENS SELECTOR BAR: 0.5x Ultra-Wide, 1x, 2x */}
-        {isActive && (
-          <div className="camera-lens-bar">
-            <button
-              type="button"
-              className={`lens-chip ${activeLens === '0.5x' ? 'is-active' : ''}`}
-              onClick={() => handleSelectLens('0.5x')}
-              title="Gunakan Lensa Ultra-Wide (0.5x)"
-            >
-              <span>0.5x</span>
-              <span className="lens-sub">WIDE</span>
-            </button>
-            <button
-              type="button"
-              className={`lens-chip ${activeLens === '1x' ? 'is-active' : ''}`}
-              onClick={() => handleSelectLens('1x')}
-              title="Kamera Standar (1x)"
-            >
-              <span>1x</span>
-            </button>
-            <button
-              type="button"
-              className={`lens-chip ${activeLens === '2x' ? 'is-active' : ''}`}
-              onClick={() => handleSelectLens('2x')}
-              title="Telephoto Zoom (2x)"
-            >
-              <span>2x</span>
-            </button>
-          </div>
-        )}
 
         {/* COMPACT BOTTOM-DOCKED COUNTDOWN TIMER (NON-OBSTRUCTIVE) */}
         {autoTimer && (
