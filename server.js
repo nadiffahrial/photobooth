@@ -441,6 +441,77 @@ app.post('/api/auth/logout', (req, res) => {
     return res.json({ success: true });
 });
 
+// Additional Auth Method: Google Sign-In
+app.post('/api/auth/google', authRateLimiter, (req, res) => {
+    const { email, name } = req.body;
+    const cleanEmail = sanitizeText(email || '', 60);
+    const cleanName = sanitizeText(name || 'Pengguna Google', 40);
+    const identifier = cleanEmail ? cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_') : `google_${crypto.randomBytes(3).toString('hex')}`;
+    const username = `g_${identifier}`.slice(0, 30);
+
+    try {
+        let userRow = db.prepare('SELECT id, username, display_name, role FROM users WHERE username = ?').get(username);
+        if (!userRow) {
+            const randomPassword = crypto.randomBytes(32).toString('hex');
+            const hash = hashPassword(randomPassword);
+            const result = db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
+                .run(username, hash, cleanName, 'user');
+            userRow = { id: Number(result.lastInsertRowid), username, display_name: cleanName, role: 'user' };
+        }
+        const user = { id: userRow.id, username: userRow.username, display_name: userRow.display_name, role: userRow.role };
+        const token = createSession(user);
+        res.cookie('session_token', token, getCookieOptions(req));
+        return res.json({ success: true, user, token, method: 'google' });
+    } catch (err) {
+        console.error('[Security] Google Auth Error:', err.message);
+        return res.status(500).json({ error: 'Gagal memproses autentikasi Google.' });
+    }
+});
+
+// Additional Auth Method: Apple Sign-In
+app.post('/api/auth/apple', authRateLimiter, (req, res) => {
+    const { name } = req.body;
+    const cleanName = sanitizeText(name || 'Pengguna Apple', 40);
+    const rand = crypto.randomBytes(3).toString('hex');
+    const username = `apple_${rand}`;
+
+    try {
+        const randomPassword = crypto.randomBytes(32).toString('hex');
+        const hash = hashPassword(randomPassword);
+        const result = db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
+            .run(username, hash, cleanName, 'user');
+        const user = { id: Number(result.lastInsertRowid), username, display_name: cleanName, role: 'user' };
+        const token = createSession(user);
+        res.cookie('session_token', token, getCookieOptions(req));
+        return res.json({ success: true, user, token, method: 'apple' });
+    } catch (err) {
+        console.error('[Security] Apple Auth Error:', err.message);
+        return res.status(500).json({ error: 'Gagal memproses autentikasi Apple.' });
+    }
+});
+
+// Additional Auth Method: Instant Guest Pass (Kiosk / Quick Pass)
+app.post('/api/auth/guest-pass', authRateLimiter, (req, res) => {
+    const { nickname } = req.body;
+    const cleanNick = sanitizeText(nickname || '', 30) || 'Tamu Studio';
+    const rand = crypto.randomBytes(3).toString('hex');
+    const username = `guest_${rand}`;
+
+    try {
+        const randomPassword = crypto.randomBytes(32).toString('hex');
+        const hash = hashPassword(randomPassword);
+        const result = db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
+            .run(username, hash, cleanNick, 'user');
+        const user = { id: Number(result.lastInsertRowid), username, display_name: cleanNick, role: 'user' };
+        const token = createSession(user);
+        res.cookie('session_token', token, getCookieOptions(req));
+        return res.json({ success: true, user, token, method: 'guest-pass' });
+    } catch (err) {
+        console.error('[Security] Guest Pass Error:', err.message);
+        return res.status(500).json({ error: 'Gagal membuat sesi Tamu.' });
+    }
+});
+
 /* ==========================================================================
    PHOTO API ENDPOINTS (Secured with Rate Limiting & Magic Byte Verification)
    ========================================================================== */

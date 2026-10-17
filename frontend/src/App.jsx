@@ -3,13 +3,14 @@ import CameraView from './components/CameraView';
 import GalleryView from './components/GalleryView';
 import ThemeSelector from './components/ThemeSelector';
 import SoftFileModal from './components/SoftFileModal';
-import AuthModal from './components/AuthModal';
+import AuthScreen from './components/AuthScreen';
 import AdminPanel from './components/AdminPanel';
 import { getDeviceInfo } from './utils/deviceDetector';
 
 export default function App() {
   const [deviceInfo, setDeviceInfo] = useState(getDeviceInfo);
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [toast, setToast] = useState('');
   const [toastTimer, setToastTimer] = useState(null);
@@ -21,7 +22,6 @@ export default function App() {
   // Modals & Soft File Session Result
   const [isSoftFileModalOpen, setIsSoftFileModalOpen] = useState(false);
   const [sessionResult, setSessionResult] = useState(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
 
   const showToast = (msg) => {
@@ -42,6 +42,8 @@ export default function App() {
       }
     } catch {
       setUser(null);
+    } finally {
+      setAuthChecked(true);
     }
   };
 
@@ -148,6 +150,33 @@ export default function App() {
     }
   };
 
+  if (!authChecked) {
+    return (
+      <div className="auth-gate-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+          <div className="btn-spinner" style={{ width: 36, height: 36, margin: '0 auto 16px', borderTopColor: '#6366f1' }} />
+          <p style={{ fontSize: '0.95rem', letterSpacing: '0.05em' }}>MEMERIKSA SESI MASUK…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="app-shell auth-view">
+        <AuthScreen
+          onAuthSuccess={(u) => {
+            setUser(u);
+            loadPhotos();
+          }}
+          showToast={showToast}
+          deviceInfo={deviceInfo}
+        />
+        {toast && <div className="toast-msg">{toast}</div>}
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       {/* Topbar */}
@@ -164,41 +193,23 @@ export default function App() {
         </div>
 
         <div className="topbar-actions">
-          {user ? (
-            <>
-              <div className="user-badge">
-                <span>{user.display_name || user.username}</span>
-                <span className={`badge-role ${user.role}`}>{user.role}</span>
-              </div>
-              {user.role === 'admin' && (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setIsAdminPanelOpen(true)}
-                  style={{ color: '#f87171', borderColor: '#7f1d1d' }}
-                >
-                  🛡️ Panel Admin
-                </button>
-              )}
-              <button type="button" className="btn-secondary" onClick={handleLogout}>
-                Keluar
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="user-badge">
-                <span>Tamu</span>
-                <span className="badge-role guest">Guest</span>
-              </div>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => setIsAuthModalOpen(true)}
-              >
-                Masuk / Daftar
-              </button>
-            </>
+          <div className="user-badge">
+            <span>{user.display_name || user.username}</span>
+            <span className={`badge-role ${user.role}`}>{user.role}</span>
+          </div>
+          {user.role === 'admin' && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setIsAdminPanelOpen(true)}
+              style={{ color: '#f87171', borderColor: '#7f1d1d' }}
+            >
+              🛡️ Panel Admin
+            </button>
           )}
+          <button type="button" className="btn-secondary" onClick={handleLogout}>
+            Keluar
+          </button>
         </div>
       </header>
 
@@ -294,16 +305,6 @@ export default function App() {
         onRestartSession={() => {
           setCurrentStep('theme');
           window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        showToast={showToast}
-      />
-
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onAuthSuccess={(u) => {
-          setUser(u);
-          loadPhotos();
         }}
         showToast={showToast}
       />

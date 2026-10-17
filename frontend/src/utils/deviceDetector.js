@@ -55,3 +55,4 @@ export function getDeviceInfo() {
     deviceType: isIOS ? 'ios' : isAndroid ? 'android' : 'desktop'
   };
 }
+

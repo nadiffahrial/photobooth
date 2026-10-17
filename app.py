@@ -222,6 +222,58 @@ def api_me():
     return jsonify({"authenticated": False, "is_guest": bool(session.get("is_guest"))})
 
 
+@app.post("/api/auth/google")
+def api_auth_google():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "").strip()
+    name = data.get("name", "").strip() or "Pengguna Google"
+    identifier = re.sub(r'[^a-zA-Z0-9_]', '_', email.split("@")[0]) if email else secrets.token_hex(3)
+    username = f"g_{identifier}"[:30]
+
+    with db.get_connection(current_app.config["DATABASE_PATH"]) as conn:
+        user = conn.execute("SELECT id, username, display_name, role FROM users WHERE username = ?", (username,)).fetchone()
+        if not user:
+            user = db.create_user(current_app.config["DATABASE_PATH"], username=username, password=secrets.token_hex(16), display_name=name)
+
+    session.clear()
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
+    session["display_name"] = user["display_name"]
+    session["role"] = user["role"]
+    return jsonify({"success": True, "user": dict(user)}), 200
+
+
+@app.post("/api/auth/apple")
+def api_auth_apple():
+    data = request.get_json(silent=True) or {}
+    name = data.get("name", "").strip() or "Pengguna Apple"
+    username = f"apple_{secrets.token_hex(3)}"
+
+    user = db.create_user(current_app.config["DATABASE_PATH"], username=username, password=secrets.token_hex(16), display_name=name)
+    session.clear()
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
+    session["display_name"] = user["display_name"]
+    session["role"] = user["role"]
+    return jsonify({"success": True, "user": dict(user)}), 200
+
+
+@app.post("/api/auth/guest-pass")
+def api_auth_guest_pass():
+    data = request.get_json(silent=True) or {}
+    nickname = data.get("nickname", "").strip() or "Tamu Studio"
+    username = f"guest_{secrets.token_hex(3)}"
+
+    user = db.create_user(current_app.config["DATABASE_PATH"], username=username, password=secrets.token_hex(16), display_name=nickname)
+    session.clear()
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
+    session["display_name"] = user["display_name"]
+    session["role"] = user["role"]
+    return jsonify({"success": True, "user": dict(user)}), 200
+
+
+
 # ==============================================================================
 # Rute Panel Administrator
 # ==============================================================================
