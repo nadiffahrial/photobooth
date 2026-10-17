@@ -544,6 +544,27 @@ def get_ai_pose():
         return jsonify({"pose": random.choice(DEFAULT_POSES)})
 
 
+def get_local_ip():
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
+@app.get("/api/network-info")
+def get_network_info():
+    local_ip = get_local_ip()
+    port = int(os.getenv("PORT", 5000))
+    return jsonify({
+        "localIp": local_ip,
+        "port": port,
+        "wifiUrl": f"http://{local_ip}:{port}"
+    })
 
 
 if __name__ == "__main__":

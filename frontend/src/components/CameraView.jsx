@@ -353,58 +353,51 @@ export default function CameraView({
           <span>{isActive ? 'LIVE PREVIEW' : 'OFFLINE'}</span>
         </div>
 
-        {/* MODERN HUD COUNTDOWN OVERLAY - PROMINENT, CENTERED & EYE-CATCHING */}
+        {/* COMPACT BOTTOM-DOCKED COUNTDOWN TIMER - UNOBSTRUCTIVE & MODERN */}
         {autoTimer && (
-          <div className="modern-countdown-overlay">
-            <div className="countdown-hud-glass">
-              {/* Pose Header Badge */}
-              <div className="countdown-hud-header">
-                <span className="hud-pulse-radar" />
-                <span className="hud-label-text">{autoTimer.label}</span>
-              </div>
-
-              {/* Glowing Center Ring with Giant Number */}
-              <div className={`countdown-hud-ring ${autoTimer.val === '📸 SMILE!' ? 'is-smile' : ''} ${autoTimer.isTransition ? 'is-trans' : ''}`}>
-                <svg className="hud-svg" viewBox="0 0 140 140">
-                  <circle className="hud-circle-bg" cx="70" cy="70" r="58" />
+          <div className="compact-bottom-timer" role="status" aria-live="polite">
+            <div className={`bottom-timer-pill ${autoTimer.val === '📸 SMILE!' ? 'is-smile' : ''} ${autoTimer.isTransition ? 'is-trans' : ''}`}>
+              {/* Dial with Glowing Ring */}
+              <div className="bottom-timer-dial">
+                <svg className="bottom-dial-svg" viewBox="0 0 48 48">
+                  <circle className="dial-circle-bg" cx="24" cy="24" r="20" />
                   <circle
-                    className="hud-circle-progress"
-                    cx="70"
-                    cy="70"
-                    r="58"
+                    className="dial-circle-progress"
+                    cx="24"
+                    cy="24"
+                    r="20"
                     style={{
                       strokeDashoffset: typeof autoTimer.val === 'number'
-                        ? (364 - (364 * (4 - autoTimer.val)) / 3)
+                        ? (125.6 - (125.6 * (4 - autoTimer.val)) / 3)
                         : 0
                     }}
                   />
                 </svg>
-
-                <div className="hud-center-val" key={`${autoTimer.label}-${autoTimer.val}`}>
-                  {typeof autoTimer.val === 'number' ? (
-                    <span className="hud-giant-number">{autoTimer.val}</span>
-                  ) : (
-                    <span className="hud-smile-badge">{autoTimer.val}</span>
-                  )}
-                </div>
+                <span className="bottom-dial-num" key={`${autoTimer.label}-${autoTimer.val}`}>
+                  {typeof autoTimer.val === 'number' ? autoTimer.val : '📸'}
+                </span>
               </div>
 
-              {/* Pose Steps Indicator */}
-              {autoTimer.totalPoses > 1 && (
-                <div className="hud-pose-dots">
-                  <span className={`hud-dot ${autoTimer.poseIndex >= 1 ? 'is-done' : ''}`} />
-                  <span className={`hud-dot ${autoTimer.poseIndex >= 2 ? 'is-done' : ''}`} />
-                  <span className={`hud-dot ${autoTimer.poseIndex >= 3 ? 'is-done' : ''}`} />
+              {/* Info Column */}
+              <div className="bottom-timer-info">
+                <div className="bottom-timer-title-row">
+                  <span className="bottom-timer-label">{autoTimer.label}</span>
+                  {autoTimer.totalPoses > 1 && (
+                    <span className="bottom-timer-dots">
+                      <span className={`b-dot ${autoTimer.poseIndex >= 1 ? 'is-done' : ''}`} />
+                      <span className={`b-dot ${autoTimer.poseIndex >= 2 ? 'is-done' : ''}`} />
+                      <span className={`b-dot ${autoTimer.poseIndex >= 3 ? 'is-done' : ''}`} />
+                    </span>
+                  )}
                 </div>
-              )}
-
-              <p className="hud-hint">
-                {autoTimer.val === '📸 SMILE!'
-                  ? 'Tahan pose & senyum!'
-                  : autoTimer.isTransition
-                  ? 'Ganti gaya pose kamu!'
-                  : 'Fokus pandangan ke lensa!'}
-              </p>
+                <span className="bottom-timer-status">
+                  {autoTimer.val === '📸 SMILE!'
+                    ? 'Tahan pose & senyum! 📸'
+                    : autoTimer.isTransition
+                    ? 'Ganti gaya pose berikutnya! ✨'
+                    : `Hitungan mundur ${autoTimer.val} detik...`}
+                </span>
+              </div>
             </div>
           </div>
         )}

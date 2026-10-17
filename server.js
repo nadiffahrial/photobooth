@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import dotenv from 'dotenv';
@@ -735,6 +736,51 @@ app.get('/api/ai/pose', async (req, res) => {
         const randomPose = DEFAULT_POSES[Math.floor(Math.random() * DEFAULT_POSES.length)];
         return res.json({ pose: randomPose });
     }
+});
+
+function getLocalIpAddress() {
+    try {
+        const interfaces = os.networkInterfaces();
+        for (const [name, addrs] of Object.entries(interfaces)) {
+            if (!addrs) continue;
+            for (const addr of addrs) {
+                if (addr.family === 'IPv4' && !addr.internal) {
+                    return addr.address;
+                }
+            }
+        }
+    } catch {}
+    return '127.0.0.1';
+}
+
+app.get('/api/network-info', (req, res) => {
+    const localIp = getLocalIpAddress();
+    const port = PORT;
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const proto = isHttps ? 'https' : 'http';
+
+    const allIps = [];
+    try {
+        const interfaces = os.networkInterfaces();
+        for (const [name, addrs] of Object.entries(interfaces)) {
+            if (!addrs) continue;
+            for (const addr of addrs) {
+                if (addr.family === 'IPv4' && !addr.internal) {
+                    allIps.push({ name, ip: addr.address });
+                }
+            }
+        }
+    } catch {}
+
+    res.json({
+        localIp,
+        port,
+        proto,
+        wifiUrl: `${proto}://${localIp}:${port}`,
+        allIps,
+        hostHeader: req.headers.host || '',
+        isLoopback: req.hostname === 'localhost' || req.hostname === '127.0.0.1'
+    });
 });
 
 
