@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Snap Studio — Photobooth</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <a class="brand" href="/" aria-label="Snap Studio home">
+                <span class="brand-mark">S</span>
+                <span>Snap Studio</span>
+            </a>
+            <div class="topbar-actions">
+                <div class="status"><span class="status-dot"></span> Camera ready</div>
+                {% if user %}
+                    <div class="user-pill">
+                        <span class="user-name">👤 {{ user.display_name or user.username }}</span>
+                        <a href="/logout" class="logout-link" title="Keluar dari akun">Keluar ⎋</a>
+                    </div>
+                {% else %}
+                    <div class="auth-pill">
+                        <a href="/login" class="login-link">Masuk / Daftar</a>
+                    </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <section class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">YOUR MOMENT, CAPTURED</p>
+                <h1>Jadikan setiap<br><em>momen</em> berkesan.</h1>
+                <p class="intro">Tekan tombol untuk aktifkan kamera dan mulai foto otomatis setiap 5 detik.</p>
+                <button class="primary-button" id="startCamera" type="button">
+                    <span>Mulai foto otomatis</span><span aria-hidden="true">↗</span>
+                </button>
+                <p class="privacy-note">Foto hanya disimpan di komputer ini. Kamera tidak diunggah ke server lain.</p>
+            </div>
+
+            <div class="camera-card" id="cameraCard">
+                <div class="camera-stage" id="cameraStage">
+                    <video id="cameraPreview" autoplay playsinline muted aria-label="Pratinjau kamera"></video>
+                    <canvas id="captureCanvas" hidden></canvas>
+                    <div class="camera-placeholder" id="cameraPlaceholder">
+                        <div class="camera-icon" aria-hidden="true">◉</div>
+                        <strong>Kamera belum aktif</strong>
+                        <span>Tekan tombol di atas untuk mengizinkan akses.</span>
+                    </div>
+                    <div class="live-label"><span></span> LIVE</div>
+                    <div class="auto-timer" id="autoTimer" aria-live="polite" hidden>
+                        <span>Foto berikutnya</span>
+                        <strong id="autoTimerValue">5</strong>
+                    </div>
+                    <div class="frame-corner corner-one"></div>
+                    <div class="frame-corner corner-two"></div>
+                    <div class="frame-corner corner-three"></div>
+                    <div class="frame-corner corner-four"></div>
+                </div>
+
+                <div class="camera-controls">
+                    <div class="camera-meta">
+                        <span id="cameraStatus">Kamera tidak aktif</span>
+                        <span>1080p · 30fps</span>
+                    </div>
+                    <div class="frame-picker" aria-label="Pilih gaya border">
+                        <span class="frame-picker-label">Border</span>
+                        <button class="frame-option is-active" type="button" data-frame="classic" aria-label="Border klasik" aria-pressed="true">01</button>
+                        <button class="frame-option" type="button" data-frame="neon" aria-label="Border neon" aria-pressed="false">02</button>
+                        <button class="frame-option" type="button" data-frame="handmade" aria-label="Border tangan-rakit" aria-pressed="false">03</button>
+                        <button class="frame-option" type="button" data-frame="strip" aria-label="Border strip" aria-pressed="false">04</button>
+                    </div>
+                    <div class="control-row">
+                        <button class="icon-button" id="flipCamera" type="button" aria-label="Ganti kamera" title="Ganti kamera">↻</button>
+                        <button class="capture-button" id="capturePhoto" type="button" aria-label="Ambil foto" disabled>
+                            <span></span>
+                        </button>
+                        <button class="icon-button" id="stopCamera" type="button" aria-label="Matikan kamera" title="Matikan kamera">■</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="gallery-section" id="gallerySection" aria-labelledby="galleryTitle">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">YOUR COLLECTION</p>
+                    <h2 id="galleryTitle">Foto terbaru</h2>
+                </div>
+                <button class="text-button" id="refreshGallery" type="button">Segarkan ▻</button>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <div class="empty-gallery">
+                    <span>✦</span>
+                    <p>Foto pertama Anda akan muncul di sini.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="../static/js/app.js" defer></script>
+</body>
+</html>
