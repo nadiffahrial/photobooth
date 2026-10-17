@@ -389,3 +389,4 @@ export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }
     </div>
   );
 }
+

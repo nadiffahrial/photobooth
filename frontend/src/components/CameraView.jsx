@@ -55,7 +55,6 @@ export default function CameraView({
   const [facingMode, setFacingMode] = useState('user');
   const [isActive, setIsActive] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [captureMode, setCaptureMode] = useState('strip'); // Default 'strip'
   const [autoTimer, setAutoTimer] = useState(null);
   const [statusText, setStatusText] = useState('Kamera belum aktif');
   const [flash, setFlash] = useState(false);
@@ -283,50 +282,6 @@ export default function CameraView({
     return canvas;
   };
 
-  // Single Photo Capture with Compact Bottom Timer
-  const handleSingleCapture = async () => {
-    if (!isActive || isCapturing) return;
-    setIsCapturing(true);
-
-    try {
-      for (let count = 3; count >= 1; count--) {
-        setAutoTimer({ label: 'Foto Tunggal', val: count, poseIndex: 1, totalPoses: 1 });
-        playBeep(count === 1 ? 1100 : count === 2 ? 880 : 700);
-        triggerHaptic(15);
-        setStatusText(`Bersiap foto dalam ${count} detik...`);
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-
-      setAutoTimer({ label: 'Foto Tunggal', val: '📸 SMILE!', poseIndex: 1, totalPoses: 1 });
-      playShutterSound();
-      triggerHaptic(40);
-      triggerFlash();
-      const canvas = grabFrame();
-      if (!canvas) throw new Error('Foto tidak dapat dibuat.');
-
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.95));
-      const formData = new FormData();
-      formData.append('photo', blob, 'capture.png');
-
-      const res = await fetch('/api/photos', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Gagal menyimpan foto.');
-
-      showToast('Foto berhasil diambil! 📸');
-      setStatusText('Foto tersimpan! Siap untuk foto berikutnya.');
-      if (onPhotoSaved) onPhotoSaved();
-    } catch (err) {
-      showToast(err.message || 'Gagal mengambil foto.');
-    } finally {
-      setIsCapturing(false);
-      setAutoTimer(null);
-    }
-  };
-
   // 3-Strip Sequential Burst Capture with Compact Bottom Timer & Sound
   const handleStripCapture = async () => {
     if (!isActive || isCapturing) return;
@@ -413,11 +368,7 @@ export default function CameraView({
 
   const handleCaptureClick = () => {
     triggerHaptic(20);
-    if (captureMode === 'strip') {
-      handleStripCapture();
-    } else {
-      handleSingleCapture();
-    }
+    handleStripCapture();
   };
 
   useEffect(() => {
@@ -590,30 +541,6 @@ export default function CameraView({
         </div>
       </div>
 
-      {/* Mode Switcher */}
-      <div className="mode-segmented" style={{ marginBottom: '14px' }}>
-        <button
-          type="button"
-          className={`mode-btn ${captureMode === 'strip' ? 'is-active' : ''}`}
-          onClick={() => {
-            triggerHaptic(15);
-            setCaptureMode('strip');
-          }}
-        >
-          🎞️ 3-Strip Photobooth
-        </button>
-        <button
-          type="button"
-          className={`mode-btn ${captureMode === 'single' ? 'is-active' : ''}`}
-          onClick={() => {
-            triggerHaptic(15);
-            setCaptureMode('single');
-          }}
-        >
-          📷 Foto Tunggal
-        </button>
-      </div>
-
       {/* Shutter & Controls Row */}
       <div className="camera-shutter-row">
         <button
@@ -631,15 +558,11 @@ export default function CameraView({
           className="btn-take-photo"
           disabled={!isActive || isCapturing}
           onClick={handleCaptureClick}
-          title={captureMode === 'strip' ? 'Mulai sesi 3 pose' : 'Take Foto'}
+          title="Mulai sesi 3 pose foto strip"
         >
           <span className="take-photo-icon">📸</span>
           <span>
-            {isCapturing
-              ? 'Mengambil Pose…'
-              : captureMode === 'strip'
-              ? 'Take Foto (Mulai 3 Pose)'
-              : 'Take Foto'}
+            {isCapturing ? 'Mengambil Pose…' : 'Take Foto (3 Pose)'}
           </span>
         </button>
 
