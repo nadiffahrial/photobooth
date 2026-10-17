@@ -2,6 +2,45 @@ import React, { useState, useEffect, useRef } from 'react';
 import { render3StripCanvas } from '../utils/stripRenderer';
 import { STRIP_THEMES } from './ThemeSelector';
 
+// Web Audio API Synthesizers for Modern Photobooth Countdown & Shutter
+function playBeep(frequency = 880, duration = 0.14) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch {}
+}
+
+function playShutterSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    [1200, 1600].forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.05);
+      gain.gain.setValueAtTime(0.28, ctx.currentTime + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.05 + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.05);
+      osc.stop(ctx.currentTime + idx * 0.05 + 0.12);
+    });
+  } catch {}
+}
+
 export default function CameraView({
   selectedTheme = 'haru-pastel',
   onChangeTheme,
@@ -13,7 +52,7 @@ export default function CameraView({
   const [facingMode, setFacingMode] = useState('user');
   const [isActive, setIsActive] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [captureMode, setCaptureMode] = useState('strip'); // Default 'strip' as requested
+  const [captureMode, setCaptureMode] = useState('strip'); // Default 'strip'
   const [autoTimer, setAutoTimer] = useState(null);
   const [statusText, setStatusText] = useState('Kamera belum aktif');
   const [flash, setFlash] = useState(false);
@@ -25,7 +64,7 @@ export default function CameraView({
 
   const triggerFlash = () => {
     setFlash(true);
-    setTimeout(() => setFlash(false), 220);
+    setTimeout(() => setFlash(false), 260);
   };
 
   const startCamera = async () => {
@@ -106,19 +145,21 @@ export default function CameraView({
     return canvas;
   };
 
-  // Single Photo Capture with 3s countdown
+  // Single Photo Capture with Modern Countdown Overlay
   const handleSingleCapture = async () => {
     if (!isActive || isCapturing) return;
     setIsCapturing(true);
 
     try {
       for (let count = 3; count >= 1; count--) {
-        setAutoTimer({ label: 'Siap-siap!', val: count });
+        setAutoTimer({ label: 'Foto Tunggal', val: count, poseIndex: 1, totalPoses: 1 });
+        playBeep(count === 1 ? 1100 : count === 2 ? 880 : 700);
         setStatusText(`Bersiap foto dalam ${count} detik...`);
         await new Promise((r) => setTimeout(r, 1000));
       }
 
-      setAutoTimer({ label: 'Senyum!', val: '📸 SMILE!' });
+      setAutoTimer({ label: 'Foto Tunggal', val: '📸 SMILE!', poseIndex: 1, totalPoses: 1 });
+      playShutterSound();
       triggerFlash();
       const canvas = grabFrame();
       if (!canvas) throw new Error('Foto tidak dapat dibuat.');
@@ -146,7 +187,7 @@ export default function CameraView({
     }
   };
 
-  // 3-Strip Sequential Burst Capture -> Renders Strip & Auto-Uploads for QR Code
+  // 3-Strip Sequential Burst Capture with Modern HUD Countdown & Sounds
   const handleStripCapture = async () => {
     if (!isActive || isCapturing) return;
     setIsCapturing(true);
@@ -155,18 +196,37 @@ export default function CameraView({
     try {
       for (let pose = 1; pose <= 3; pose++) {
         for (let count = 3; count >= 1; count--) {
-          setAutoTimer({ label: `Pose ${pose} dari 3`, val: count });
+          setAutoTimer({
+            label: `Pose ${pose} dari 3`,
+            val: count,
+            poseIndex: pose,
+            totalPoses: 3
+          });
+          playBeep(count === 1 ? 1150 : count === 2 ? 900 : 720);
           setStatusText(`Pose ${pose}/3: Bersiap bergaya... (${count}s)`);
           await new Promise((r) => setTimeout(r, 1000));
         }
 
-        setAutoTimer({ label: `Pose ${pose} dari 3`, val: '📸 SMILE!' });
+        setAutoTimer({
+          label: `Pose ${pose} dari 3`,
+          val: '📸 SMILE!',
+          poseIndex: pose,
+          totalPoses: 3
+        });
+        playShutterSound();
         triggerFlash();
         const frame = grabFrame();
         frames.push(frame);
 
         if (pose < 3) {
-          setStatusText(`Pose ${pose} selesai! Ganti gaya berikutnya...`);
+          setAutoTimer({
+            label: `Ganti Gaya Berikutnya!`,
+            val: '✨ NEXT',
+            poseIndex: pose,
+            totalPoses: 3,
+            isTransition: true
+          });
+          setStatusText(`Pose ${pose} selesai! Bersiap pose ${pose + 1}...`);
           await new Promise((r) => setTimeout(r, 900));
         }
       }
@@ -257,10 +317,10 @@ export default function CameraView({
               position: 'absolute',
               inset: 0,
               background: '#ffffff',
-              opacity: 0.9,
-              zIndex: 20,
+              opacity: 0.95,
+              zIndex: 50,
               pointerEvents: 'none',
-              transition: 'opacity 0.2s ease-out'
+              transition: 'opacity 0.25s ease-out'
             }}
           />
         )}
@@ -293,12 +353,59 @@ export default function CameraView({
           <span>{isActive ? 'LIVE PREVIEW' : 'OFFLINE'}</span>
         </div>
 
+        {/* MODERN HUD COUNTDOWN OVERLAY - PROMINENT, CENTERED & EYE-CATCHING */}
         {autoTimer && (
-          <div className="auto-timer-badge">
-            <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {autoTimer.label}
-            </span>
-            <strong style={{ fontSize: '1.6rem', lineHeight: 1 }}>{autoTimer.val}</strong>
+          <div className="modern-countdown-overlay">
+            <div className="countdown-hud-glass">
+              {/* Pose Header Badge */}
+              <div className="countdown-hud-header">
+                <span className="hud-pulse-radar" />
+                <span className="hud-label-text">{autoTimer.label}</span>
+              </div>
+
+              {/* Glowing Center Ring with Giant Number */}
+              <div className={`countdown-hud-ring ${autoTimer.val === '📸 SMILE!' ? 'is-smile' : ''} ${autoTimer.isTransition ? 'is-trans' : ''}`}>
+                <svg className="hud-svg" viewBox="0 0 140 140">
+                  <circle className="hud-circle-bg" cx="70" cy="70" r="58" />
+                  <circle
+                    className="hud-circle-progress"
+                    cx="70"
+                    cy="70"
+                    r="58"
+                    style={{
+                      strokeDashoffset: typeof autoTimer.val === 'number'
+                        ? (364 - (364 * (4 - autoTimer.val)) / 3)
+                        : 0
+                    }}
+                  />
+                </svg>
+
+                <div className="hud-center-val" key={`${autoTimer.label}-${autoTimer.val}`}>
+                  {typeof autoTimer.val === 'number' ? (
+                    <span className="hud-giant-number">{autoTimer.val}</span>
+                  ) : (
+                    <span className="hud-smile-badge">{autoTimer.val}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Pose Steps Indicator */}
+              {autoTimer.totalPoses > 1 && (
+                <div className="hud-pose-dots">
+                  <span className={`hud-dot ${autoTimer.poseIndex >= 1 ? 'is-done' : ''}`} />
+                  <span className={`hud-dot ${autoTimer.poseIndex >= 2 ? 'is-done' : ''}`} />
+                  <span className={`hud-dot ${autoTimer.poseIndex >= 3 ? 'is-done' : ''}`} />
+                </div>
+              )}
+
+              <p className="hud-hint">
+                {autoTimer.val === '📸 SMILE!'
+                  ? 'Tahan pose & senyum!'
+                  : autoTimer.isTransition
+                  ? 'Ganti gaya pose kamu!'
+                  : 'Fokus pandangan ke lensa!'}
+              </p>
+            </div>
           </div>
         )}
 

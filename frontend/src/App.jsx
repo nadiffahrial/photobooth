@@ -5,7 +5,6 @@ import ThemeSelector from './components/ThemeSelector';
 import SoftFileModal from './components/SoftFileModal';
 import AuthModal from './components/AuthModal';
 import AdminPanel from './components/AdminPanel';
-import CaptionModal from './components/CaptionModal';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -22,8 +21,6 @@ export default function App() {
   const [sessionResult, setSessionResult] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
-  const [isCaptionModalOpen, setIsCaptionModalOpen] = useState(false);
-  const [currentCaption, setCurrentCaption] = useState('');
 
   const showToast = (msg) => {
     clearTimeout(toastTimer);
@@ -69,21 +66,6 @@ export default function App() {
       loadPhotos();
     } catch {
       showToast('Gagal keluar.');
-    }
-  };
-
-  const handleGenerateCaption = async (filename) => {
-    setCurrentCaption('Menyusun caption estetik dengan AI… 🤖✨');
-    setIsCaptionModalOpen(true);
-    try {
-      const res = await fetch(`/api/photos/${encodeURIComponent(filename)}/caption`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-      const data = await res.json();
-      setCurrentCaption(data.caption || 'Momen seru di Snap Studio! ✨📸 #SnapMoment');
-    } catch {
-      setCurrentCaption('Momen seru di Snap Studio! ✨📸 #SnapMoment');
     }
   };
 
@@ -152,7 +134,7 @@ export default function App() {
         <a href="/" className="brand">
           <div className="brand-symbol">✦</div>
           <span className="brand-title">Snap Studio</span>
-          <span className="brand-tech">React + Node.js</span>
+          <span className="brand-tech">Dark Mode</span>
         </a>
 
         <div className="topbar-actions">
@@ -167,7 +149,7 @@ export default function App() {
                   type="button"
                   className="btn-secondary"
                   onClick={() => setIsAdminPanelOpen(true)}
-                  style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                  style={{ color: '#f87171', borderColor: '#7f1d1d' }}
                 >
                   🛡️ Panel Admin
                 </button>
@@ -228,7 +210,7 @@ export default function App() {
               </div>
 
               <p className="eyebrow">
-                {user ? `HALO, ${(user.display_name || user.username).toUpperCase()}` : 'STUDIO PHOTOBOOTH MODERN'}
+                {user ? `HALO, ${(user.display_name || user.username).toUpperCase()}` : 'STUDIO PHOTOBOOTH DARK EDITION'}
               </p>
               <h1>
                 Bersiap di Depan Kamera,<br />
@@ -266,11 +248,10 @@ export default function App() {
           </section>
         )}
 
-        {/* Gallery Section */}
+        {/* Gallery Section without AI Caption */}
         <GalleryView
           photos={photos}
           onDeletePhoto={handleDeletePhoto}
-          onGenerateCaption={handleGenerateCaption}
           onCreateStripFromGallery={handleCreateStripFromGallery}
         />
       </main>
@@ -303,13 +284,6 @@ export default function App() {
       <AdminPanel
         isOpen={isAdminPanelOpen}
         onClose={() => setIsAdminPanelOpen(false)}
-        showToast={showToast}
-      />
-
-      <CaptionModal
-        isOpen={isCaptionModalOpen}
-        onClose={() => setIsCaptionModalOpen(false)}
-        caption={currentCaption}
         showToast={showToast}
       />
 

@@ -544,33 +544,6 @@ def get_ai_pose():
         return jsonify({"pose": random.choice(DEFAULT_POSES)})
 
 
-@app.post("/api/photos/<path:filename>/caption")
-def get_photo_caption(filename: str):
-    user = get_current_user()
-    user_name = user["display_name"] if user else "Kawan"
-
-    photo_path = current_app.config["UPLOAD_DIR"] / filename
-    if not photo_path.is_file():
-        return jsonify({"error": "Foto tidak ditemukan."}), 404
-
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return jsonify({"caption": f"Momen terbaik bersama {user_name} di Snap Studio! ✨📸 #SnapStudio #GoodVibes"})
-
-    try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        prompt = (
-            f"Kamu adalah AI asisten photobooth Snap Studio. Buatkan 1 caption Instagram singkat (maks 2 kalimat) "
-            f"yang aesthetic, ceria, dan seru untuk foto photobooth milik {user_name}. Berikan 2 hashtag keren."
-        )
-        response = client.models.generate_content(
-            model="gemini-flash-lite-latest",
-            contents=prompt,
-        )
-        return jsonify({"caption": response.text.strip()})
-    except Exception:
-        return jsonify({"caption": f"Momen berkesan di Snap Studio bersama {user_name}! 📸✨ #Photobooth #SnapMoment"})
 
 
 if __name__ == "__main__":

@@ -737,34 +737,7 @@ app.get('/api/ai/pose', async (req, res) => {
     }
 });
 
-app.post('/api/photos/:filename/caption', async (req, res) => {
-    const filename = path.basename(req.params.filename);
-    if (!FILENAME_REGEX.test(filename)) {
-        return res.status(400).json({ error: 'Format nama berkas tidak valid.' });
-    }
 
-    const user = getSessionUser(req);
-    const userName = sanitizeText(user?.display_name || user?.username, 30) || 'Snap Studio';
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-        return res.json({ caption: `Momen seru tak terlupakan di Snap Studio bersama ${userName}! ✨📸 #Photobooth #SnapMoment` });
-    }
-
-    try {
-        const prompt = `Kamu adalah asisten caption media sosial untuk photobooth Snap Studio. Buatkan 1 caption Instagram singkat (maksimal 2 kalimat) yang estetik, ceria, dan menarik untuk foto milik ${userName}. Sertakan 2 hashtag keren.`;
-        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const data = await geminiRes.json();
-        const captionText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        return res.json({ caption: captionText || `Momen bahagia di Snap Studio! ✨📸 #SnapMoment` });
-    } catch {
-        return res.json({ caption: `Momen bahagia di Snap Studio! ✨📸 #SnapMoment` });
-    }
-});
 
 /* ==========================================================================
    ADMIN MANAGEMENT API ENDPOINTS (RBAC Enforcement)

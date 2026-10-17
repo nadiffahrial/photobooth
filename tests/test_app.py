@@ -158,14 +158,6 @@ class PhotoboothTests(unittest.TestCase):
         self.assertIn("pose", response.get_json())
         self.assertTrue(len(response.get_json()["pose"]) > 5)
 
-    def test_ai_photo_caption_endpoint(self):
-        self.client.get("/guest")
-        img = io.BytesIO()
-        Image.new("RGB", (20, 20), color="#ffffff").save(img, format="PNG")
-        img.seek(0)
-        upload_res = self.client.post("/api/photos", data={"photo": (img, "p.png")}, content_type="multipart/form-data")
-        filename = upload_res.get_json()["name"]
-
     def test_admin_access_allowed_for_admin(self):
         # Default admin otomatis terbuat: admin / admin123
         self.client.post("/login", data={"username": "admin", "password": "admin123"}, follow_redirects=True)

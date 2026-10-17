@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function GalleryView({ photos = [], onDeletePhoto, onGenerateCaption, onCreateStripFromGallery }) {
+export default function GalleryView({ photos = [], onDeletePhoto, onCreateStripFromGallery }) {
   return (
     <section className="gallery-section">
       <div className="gallery-heading">
@@ -43,14 +43,6 @@ export default function GalleryView({ photos = [], onDeletePhoto, onGenerateCapt
                 </a>
                 <button
                   type="button"
-                  className="action-btn ai"
-                  onClick={() => onGenerateCaption(p.name)}
-                  title="Buat caption estetik dengan AI"
-                >
-                  ✨ AI Caption
-                </button>
-                <button
-                  type="button"
                   className="action-btn danger"
                   onClick={() => onDeletePhoto(p.name)}
                   title="Hapus foto ini"
@@ -65,4 +57,3 @@ export default function GalleryView({ photos = [], onDeletePhoto, onGenerateCapt
     </section>
   );
 }
-
