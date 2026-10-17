@@ -4,5 +4,4 @@ google-genai
 python-dotenv
 cryptography
 gunicorn
-gunicorn
-
+qrcode>=8.0

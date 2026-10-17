@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import CameraView from './components/CameraView';
 import GalleryView from './components/GalleryView';
-import StripModal from './components/StripModal';
+import ThemeSelector from './components/ThemeSelector';
+import SoftFileModal from './components/SoftFileModal';
 import AuthModal from './components/AuthModal';
 import AdminPanel from './components/AdminPanel';
 import CaptionModal from './components/CaptionModal';
@@ -12,9 +13,13 @@ export default function App() {
   const [toast, setToast] = useState('');
   const [toastTimer, setToastTimer] = useState(null);
 
-  // Modals
-  const [isStripModalOpen, setIsStripModalOpen] = useState(false);
-  const [stripFrames, setStripFrames] = useState([]);
+  // Photobooth Step Flow: 'theme' -> 'camera'
+  const [currentStep, setCurrentStep] = useState('theme');
+  const [selectedTheme, setSelectedTheme] = useState('haru-pastel');
+
+  // Modals & Soft File Session Result
+  const [isSoftFileModalOpen, setIsSoftFileModalOpen] = useState(false);
+  const [sessionResult, setSessionResult] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [isCaptionModalOpen, setIsCaptionModalOpen] = useState(false);
@@ -98,6 +103,13 @@ export default function App() {
     }
   };
 
+  // Callback when 3-pose burst completes in CameraView
+  const handleStripComplete = (result) => {
+    setSessionResult(result);
+    setIsSoftFileModalOpen(true);
+  };
+
+  // Build strip from existing gallery photos
   const handleCreateStripFromGallery = async () => {
     if (photos.length === 0) {
       showToast('Belum ada foto di galeri. Ambil foto terlebih dahulu!');
@@ -122,8 +134,12 @@ export default function App() {
           });
         })
       );
-      setStripFrames(loadedImages);
-      setIsStripModalOpen(true);
+      setSessionResult({
+        frames: loadedImages,
+        theme: selectedTheme,
+        photo: { name: selected[0].name, url: selected[0].url }
+      });
+      setIsSoftFileModalOpen(true);
     } catch {
       showToast('Gagal memproses gambar dari galeri.');
     }
@@ -178,41 +194,77 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Hero & Camera Section */}
+      {/* Main Photobooth Flow */}
       <main>
-        <section className="studio-grid">
-          <div className="hero-text">
-            <p className="eyebrow">
-              {user ? `HALO, ${(user.display_name || user.username).toUpperCase()}` : 'STUDIO PHOTOBOOTH MODERN'}
-            </p>
-            <h1>
-              Jadikan setiap<br />
-              <em>momen</em> berkesan.
-            </h1>
-            <p className="intro">
-              Ambil foto selfie satuan atau rekam <strong>Strip 3 Foto Vertikal</strong> bergaya photobooth Korea & 35mm dengan 6 tema unik!
-            </p>
-
-            <div className="hero-btn-row">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={handleCreateStripFromGallery}
-              >
-                <span>🎞️ Buat Strip 3 Foto dari Galeri</span>
-              </button>
-            </div>
-          </div>
-
-          <CameraView
-            onPhotoSaved={loadPhotos}
-            onStripReady={(frames) => {
-              setStripFrames(frames);
-              setIsStripModalOpen(true);
+        {currentStep === 'theme' ? (
+          /* STEP 1: PILIH MODEL BORDER STRIP TERLEBIH DAHULU */
+          <ThemeSelector
+            selectedTheme={selectedTheme}
+            onSelectTheme={setSelectedTheme}
+            onProceedToCamera={() => {
+              setCurrentStep('camera');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            showToast={showToast}
           />
-        </section>
+        ) : (
+          /* STEP 2: DIARAHKAN KE TAKE FOTO DENGAN BORDER TERPILIH */
+          <section className="studio-grid">
+            <div className="hero-text">
+              <div className="step-indicator-bar" style={{ marginBottom: '16px' }}>
+                <div className="step-item is-done" onClick={() => setCurrentStep('theme')} style={{ cursor: 'pointer' }}>
+                  <span className="step-number">✓</span>
+                  <span className="step-label">Desain Terpilih</span>
+                </div>
+                <div className="step-connector" />
+                <div className="step-item is-active">
+                  <span className="step-number">2</span>
+                  <span className="step-label">Take Foto (3 Pose)</span>
+                </div>
+                <div className="step-connector" />
+                <div className="step-item">
+                  <span className="step-number">3</span>
+                  <span className="step-label">QR Code</span>
+                </div>
+              </div>
+
+              <p className="eyebrow">
+                {user ? `HALO, ${(user.display_name || user.username).toUpperCase()}` : 'STUDIO PHOTOBOOTH MODERN'}
+              </p>
+              <h1>
+                Bersiap di Depan Kamera,<br />
+                <em>senyum</em> terbaikmu!
+              </h1>
+              <p className="intro">
+                Klik tombol <strong>Take Foto</strong> untuk memulai countdown 3 pose berturut-turut. Setelah sesi berakhir, soft file siap diunduh via <strong>QR Code</strong> ke HP kamu!
+              </p>
+
+              <div className="hero-btn-row">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setCurrentStep('theme')}
+                >
+                  <span>↺ Ganti Desain Strip</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleCreateStripFromGallery}
+                >
+                  <span>🎞️ Buat Strip dari Galeri</span>
+                </button>
+              </div>
+            </div>
+
+            <CameraView
+              selectedTheme={selectedTheme}
+              onChangeTheme={() => setCurrentStep('theme')}
+              onPhotoSaved={loadPhotos}
+              onStripComplete={handleStripComplete}
+              showToast={showToast}
+            />
+          </section>
+        )}
 
         {/* Gallery Section */}
         <GalleryView
@@ -223,12 +275,18 @@ export default function App() {
         />
       </main>
 
-      {/* Modals */}
-      <StripModal
-        isOpen={isStripModalOpen}
-        onClose={() => setIsStripModalOpen(false)}
-        frames={stripFrames}
+      {/* STEP 3: MODAL SOFT FILE BERBENTUK QR CODE (MUNCUL OTOMATIS KETIKA SESI FOTO BERAKHIR) */}
+      <SoftFileModal
+        isOpen={isSoftFileModalOpen}
+        onClose={() => setIsSoftFileModalOpen(false)}
+        frames={sessionResult?.frames || []}
+        initialTheme={sessionResult?.theme || selectedTheme}
+        initialPhoto={sessionResult?.photo}
         onSaved={loadPhotos}
+        onRestartSession={() => {
+          setCurrentStep('theme');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         showToast={showToast}
       />
 
@@ -260,4 +318,3 @@ export default function App() {
     </div>
   );
 }
-

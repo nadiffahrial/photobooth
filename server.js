@@ -557,6 +557,151 @@ app.delete('/api/photos/:filename', (req, res) => {
     }
 });
 
+// Mobile Soft File Landing Page accessed via QR Code scan
+app.get('/download/:filename', (req, res) => {
+    const rawFilename = req.params.filename;
+    const filename = path.basename(rawFilename);
+
+    if (!FILENAME_REGEX.test(filename)) {
+        return res.status(400).send('Format nama berkas tidak valid.');
+    }
+
+    const filePath = path.join(UPLOAD_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).send('Foto tidak ditemukan atau telah dihapus.');
+    }
+
+    if (req.query.raw === '1' || req.headers.accept?.includes('image/')) {
+        return res.sendFile(filePath);
+    }
+
+    const photoUrl = `/photos/${encodeURIComponent(filename)}`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snap Studio - Unduh Soft File</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #100d17 0%, #220e36 50%, #0d0a14 100%);
+            color: #fffdf9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            text-align: center;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 28px;
+            padding: 26px 20px;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(123, 60, 255, 0.25);
+            color: #c084fc;
+            border: 1px solid rgba(192, 132, 252, 0.4);
+            padding: 5px 14px;
+            border-radius: 100px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.65rem;
+            margin-bottom: 6px;
+        }
+        p {
+            color: #b7b0c2;
+            font-size: 0.88rem;
+            line-height: 1.45;
+            margin-bottom: 18px;
+        }
+        .img-box {
+            background: #09080c;
+            border-radius: 18px;
+            padding: 12px;
+            margin-bottom: 22px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.7);
+        }
+        img {
+            max-width: 100%;
+            max-height: 52vh;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .btn-download {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #7b3cff, #5616dc);
+            color: white;
+            text-decoration: none;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            box-shadow: 0 6px 20px rgba(123, 60, 255, 0.4);
+        }
+        .btn-app {
+            display: block;
+            width: 100%;
+            padding: 11px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .hint {
+            margin-top: 14px;
+            font-size: 0.75rem;
+            color: #8c8498;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="badge">✦ Soft File Photobooth ✦</span>
+        <h1>Snap Studio</h1>
+        <p>Soft file foto strip resolusi tinggi kamu siap diunduh ke galeri HP!</p>
+        <div class="img-box">
+            <img src="${photoUrl}" alt="Soft file strip photobooth">
+        </div>
+        <a href="${photoUrl}" download="snap-studio-${filename}" class="btn-download">
+            <span>📥 Unduh ke Galeri Ponsel</span>
+        </a>
+        <a href="/" class="btn-app">📸 Buka Studio Photobooth</a>
+        <p class="hint">Tip: Anda juga dapat menekan dan menahan foto di atas lalu pilih <em>"Simpan Gambar"</em>.</p>
+    </div>
+</body>
+</html>`);
+});
+
 /* ==========================================================================
    AI API ENDPOINTS
    ========================================================================== */

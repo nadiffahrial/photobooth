@@ -1,17 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { render3StripCanvas } from '../utils/stripRenderer';
+import { STRIP_THEMES } from './ThemeSelector';
 
-export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
+export default function CameraView({
+  selectedTheme = 'haru-pastel',
+  onChangeTheme,
+  onPhotoSaved,
+  onStripComplete,
+  showToast
+}) {
   const [stream, setStream] = useState(null);
   const [facingMode, setFacingMode] = useState('user');
   const [isActive, setIsActive] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [captureMode, setCaptureMode] = useState('single'); // 'single' | 'strip'
+  const [captureMode, setCaptureMode] = useState('strip'); // Default 'strip' as requested
   const [autoTimer, setAutoTimer] = useState(null);
   const [statusText, setStatusText] = useState('Kamera belum aktif');
   const [flash, setFlash] = useState(false);
 
   const videoRef = useRef(null);
   const autoTimerRef = useRef(null);
+
+  const activeThemeObj = STRIP_THEMES.find((t) => t.id === selectedTheme) || STRIP_THEMES[0];
 
   const triggerFlash = () => {
     setFlash(true);
@@ -47,7 +57,7 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
         await videoRef.current.play();
       }
       setIsActive(true);
-      setStatusText(captureMode === 'strip' ? 'Mode Strip 3 Foto aktif' : 'Kamera aktif · Foto otomatis 5s');
+      setStatusText('Kamera aktif · Klik tombol Take Foto untuk mulai 3 pose!');
     } catch (err) {
       console.error(err);
       showToast('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.');
@@ -136,7 +146,7 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
     }
   };
 
-  // 3-Strip Sequential Burst Capture
+  // 3-Strip Sequential Burst Capture -> Renders Strip & Auto-Uploads for QR Code
   const handleStripCapture = async () => {
     if (!isActive || isCapturing) return;
     setIsCapturing(true);
@@ -145,29 +155,56 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
     try {
       for (let pose = 1; pose <= 3; pose++) {
         for (let count = 3; count >= 1; count--) {
-          setAutoTimer({ label: `Pose ${pose}/3`, val: count });
-          setStatusText(`Pose ${pose}/3: Bersiap... (${count}s)`);
+          setAutoTimer({ label: `Pose ${pose} dari 3`, val: count });
+          setStatusText(`Pose ${pose}/3: Bersiap bergaya... (${count}s)`);
           await new Promise((r) => setTimeout(r, 1000));
         }
 
-        setAutoTimer({ label: `Pose ${pose}/3`, val: '📸 SMILE!' });
+        setAutoTimer({ label: `Pose ${pose} dari 3`, val: '📸 SMILE!' });
         triggerFlash();
         const frame = grabFrame();
         frames.push(frame);
 
         if (pose < 3) {
           setStatusText(`Pose ${pose} selesai! Ganti gaya berikutnya...`);
-          await new Promise((r) => setTimeout(r, 800));
+          await new Promise((r) => setTimeout(r, 900));
         }
       }
 
       setAutoTimer(null);
-      setStatusText('3 Pose berhasil diambil!');
-      showToast('3 Pose berhasil diambil! Pilih tema strip favoritmu ✨');
-      if (onStripReady) onStripReady(frames);
+      setStatusText('3 Pose selesai diambil! Menyusun soft file strip…');
+
+      // Render high-resolution strip canvas with the chosen theme
+      const stripCanvas = document.createElement('canvas');
+      render3StripCanvas(stripCanvas, frames, selectedTheme);
+
+      // Convert to blob and upload as persistent soft file
+      const blob = await new Promise((resolve) => stripCanvas.toBlob(resolve, 'image/png', 0.95));
+      const formData = new FormData();
+      formData.append('photo', blob, `strip_${selectedTheme}_${Date.now()}.png`);
+
+      const res = await fetch('/api/photos', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Gagal menyimpan soft file strip.');
+
+      showToast('3 Pose selesai! Soft file & QR code siap diunduh 🎉');
+      if (onPhotoSaved) onPhotoSaved();
+
+      if (onStripComplete) {
+        onStripComplete({
+          frames,
+          theme: selectedTheme,
+          photo: data.photo,
+          canvasDataUrl: stripCanvas.toDataURL('image/png')
+        });
+      }
     } catch (err) {
       console.error(err);
-      showToast('Terjadi kesalahan saat mengambil strip 3 foto.');
+      showToast(err.message || 'Terjadi kesalahan saat memproses strip 3 foto.');
     } finally {
       setIsCapturing(false);
       setAutoTimer(null);
@@ -182,8 +219,11 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
     }
   };
 
-  // Manual capture: user triggers photo on-demand with "Take Foto" button
+  // Auto-start camera when entering camera step if not already active
   useEffect(() => {
+    if (!isActive) {
+      startCamera();
+    }
     return () => {
       clearInterval(autoTimerRef.current);
     };
@@ -191,6 +231,25 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
 
   return (
     <div className="camera-card">
+      {/* Active Theme Bar above Camera */}
+      <div className="camera-theme-header">
+        <div className="theme-current-badge">
+          <span className="theme-current-dot" />
+          <span className="theme-current-title">Desain Frame:</span>
+          <strong>{activeThemeObj.emoji} {activeThemeObj.name}</strong>
+        </div>
+        {onChangeTheme && (
+          <button
+            type="button"
+            className="btn-change-theme"
+            onClick={onChangeTheme}
+            title="Kembali ke pemilihan desain"
+          >
+            ↺ Ganti Desain
+          </button>
+        )}
+      </div>
+
       <div className="camera-stage">
         {flash && (
           <div
@@ -218,57 +277,63 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
           <div className="camera-placeholder">
             <div className="placeholder-icon">◉</div>
             <strong style={{ display: 'block', fontSize: '1.1rem', marginBottom: '4px' }}>
-              Kamera belum aktif
+              Kamera Belum Aktif
             </strong>
-            <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>
-              Tekan tombol "Mulai Kamera" di samping untuk memulai.
-            </span>
+            <p style={{ fontSize: '0.82rem', color: 'var(--muted)', maxWidth: '280px', margin: '0 auto 16px' }}>
+              Aktifkan kamera untuk mulai sesi foto 3 pose dengan desain <strong>{activeThemeObj.name}</strong>.
+            </p>
+            <button type="button" className="btn-primary" onClick={startCamera}>
+              <span>Aktifkan Kamera Sekarang</span>
+            </button>
           </div>
         )}
 
-        {isActive && (
-          <div className="live-badge">
-            <div className="live-dot" /> LIVE
-          </div>
-        )}
+        <div className="live-pill">
+          <span className={`live-dot ${isActive ? 'is-live' : ''}`} />
+          <span>{isActive ? 'LIVE PREVIEW' : 'OFFLINE'}</span>
+        </div>
 
         {autoTimer && (
-          <div className="auto-timer-overlay">
-            <span>{autoTimer.label}</span>
-            <strong>{autoTimer.val}</strong>
+          <div className="auto-timer-badge">
+            <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {autoTimer.label}
+            </span>
+            <strong style={{ fontSize: '1.6rem', lineHeight: 1 }}>{autoTimer.val}</strong>
           </div>
         )}
+
+        {/* Viewfinder brackets */}
+        <div className="vf-bracket top-left" />
+        <div className="vf-bracket top-right" />
+        <div className="vf-bracket bottom-left" />
+        <div className="vf-bracket bottom-right" />
       </div>
 
-      <div className="mode-switch-wrapper">
+      {/* Camera Controls */}
+      <div className="camera-meta-row">
+        <span>● {statusText}</span>
+        <span>{captureMode === 'strip' ? 'Mode 3-Strip (Pose 1-2-3)' : 'Foto Tunggal'}</span>
+      </div>
+
+      {/* Mode Switcher */}
+      <div className="mode-segmented" style={{ marginBottom: '14px' }}>
         <button
           type="button"
-          className={`mode-pill ${captureMode === 'single' ? 'is-active' : ''}`}
-          onClick={() => {
-            setCaptureMode('single');
-            setStatusText('Kamera aktif · Foto otomatis 5s');
-          }}
+          className={`mode-btn ${captureMode === 'strip' ? 'is-active' : ''}`}
+          onClick={() => setCaptureMode('strip')}
         >
-          📸 Foto Satuan
+          🎞️ 3-Strip Photobooth
         </button>
         <button
           type="button"
-          className={`mode-pill ${captureMode === 'strip' ? 'is-active' : ''}`}
-          onClick={() => {
-            setCaptureMode('strip');
-            setStatusText('Mode Strip 3 Foto (Tekan shutter untuk mulai)');
-          }}
+          className={`mode-btn ${captureMode === 'single' ? 'is-active' : ''}`}
+          onClick={() => setCaptureMode('single')}
         >
-          🎞️ Mode Strip 3 Foto
+          📷 Foto Tunggal
         </button>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 4px', fontSize: '0.75rem', color: 'var(--muted)' }}>
-        <span>{statusText}</span>
-        <span>{facingMode === 'user' ? 'Kamera Depan' : 'Kamera Belakang'}</span>
-      </div>
-
-      <div className="camera-controls-row">
+      <div className="camera-shutter-row">
         <button
           type="button"
           className="icon-btn"
@@ -289,9 +354,9 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
           <span className="take-photo-icon">📸</span>
           <span>
             {isCapturing
-              ? 'Mengambil…'
+              ? 'Mengambil Pose…'
               : captureMode === 'strip'
-              ? 'Take Foto (3 Strip)'
+              ? 'Take Foto (Mulai 3 Pose)'
               : 'Take Foto'}
           </span>
         </button>
@@ -331,4 +396,3 @@ export default function CameraView({ onPhotoSaved, onStripReady, showToast }) {
     </div>
   );
 }
-
