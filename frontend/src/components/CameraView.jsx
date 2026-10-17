@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { render3StripCanvas } from '../utils/stripRenderer';
 import { STRIP_THEMES } from './ThemeSelector';
+import { isStaticHost, localSavePhoto } from '../utils/localStore';
 
 // Web Audio API Synthesizers for Modern Photobooth Countdown & Shutter
 function playBeep(frequency = 880, duration = 0.14) {
@@ -244,16 +245,27 @@ export default function CameraView({
 
       // Convert to blob and upload as persistent soft file
       const blob = await new Promise((resolve) => stripCanvas.toBlob(resolve, 'image/png', 0.95));
-      const formData = new FormData();
-      formData.append('photo', blob, `strip_${selectedTheme}_${Date.now()}.png`);
+      const filename = `strip_${selectedTheme}_${Date.now()}.png`;
+      let savedPhoto = null;
 
-      const res = await fetch('/api/photos', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Gagal menyimpan soft file strip.');
+      if (isStaticHost()) {
+        savedPhoto = await localSavePhoto(blob, filename);
+      } else {
+        try {
+          const formData = new FormData();
+          formData.append('photo', blob, filename);
+          const res = await fetch('/api/photos', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'Gagal menyimpan soft file strip.');
+          savedPhoto = data.photo || { name: data.name, url: data.url };
+        } catch {
+          savedPhoto = await localSavePhoto(blob, filename);
+        }
+      }
 
       showToast('3 Pose selesai! Soft file & QR code siap diunduh 🎉');
       if (onPhotoSaved) onPhotoSaved();
@@ -262,7 +274,7 @@ export default function CameraView({
         onStripComplete({
           frames,
           theme: selectedTheme,
-          photo: data.photo
+          photo: savedPhoto
         });
       }
     } catch (err) {

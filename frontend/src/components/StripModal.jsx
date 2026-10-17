@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { render3StripCanvas } from '../utils/stripRenderer';
+import { isStaticHost, localSavePhoto } from '../utils/localStore';
 
 const THEMES = [
   { id: 'film-noir', label: '🎞️ Film Noir (35mm)' },
@@ -52,16 +53,26 @@ export default function StripModal({ isOpen, onClose, frames, onSaved, showToast
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.95));
       if (!blob) throw new Error('Gagal mengonversi strip.');
 
-      const formData = new FormData();
-      formData.append('photo', blob, `strip-3-${currentTheme}.png`);
+      const filename = `strip-3-${currentTheme}.png`;
 
-      const res = await fetch('/api/photos', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Gagal menyimpan strip.');
+      if (isStaticHost()) {
+        await localSavePhoto(blob, filename);
+      } else {
+        try {
+          const formData = new FormData();
+          formData.append('photo', blob, filename);
+
+          const res = await fetch('/api/photos', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'Gagal menyimpan strip.');
+        } catch {
+          await localSavePhoto(blob, filename);
+        }
+      }
 
       showToast('Strip 3 foto berhasil disimpan ke galeri! ☁️');
       if (onSaved) onSaved();

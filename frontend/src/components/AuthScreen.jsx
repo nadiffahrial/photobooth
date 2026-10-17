@@ -1,4 +1,12 @@
 import React, { useState } from 'react';
+import {
+  isStaticHost,
+  localLogin,
+  localRegister,
+  localGoogleAuth,
+  localAppleAuth,
+  localGuestPass
+} from '../utils/localStore';
 
 export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }) {
   const [tab, setTab] = useState('login'); // 'login' | 'register'
@@ -24,6 +32,26 @@ export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }
     }
 
     setLoading(true);
+
+    if (isStaticHost()) {
+      try {
+        const u = tab === 'register'
+          ? localRegister(username, password, displayName)
+          : localLogin(username, password);
+        showToast(
+          tab === 'register'
+            ? 'Registrasi berhasil! Selamat datang di Snap Studio.'
+            : `Selamat datang kembali, ${u.display_name || u.username}!`
+        );
+        onAuthSuccess(u);
+      } catch (err) {
+        showToast(err.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const endpoint = tab === 'register' ? '/api/auth/register' : '/api/auth/login';
     const payload = tab === 'register'
       ? { username: username.trim(), password, display_name: displayName.trim() }
@@ -46,7 +74,16 @@ export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }
       );
       onAuthSuccess(data.user);
     } catch (err) {
-      showToast(err.message || 'Terjadi kesalahan saat autentikasi.');
+      // Fallback to local auth if API unreachable
+      try {
+        const u = tab === 'register'
+          ? localRegister(username, password, displayName)
+          : localLogin(username, password);
+        showToast(`Masuk mode offline: ${u.display_name || u.username}! ✨`);
+        onAuthSuccess(u);
+      } catch (localErr) {
+        showToast(err.message || localErr.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -55,6 +92,14 @@ export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }
   // 2. Additional Method: Google Sign-In
   const handleGoogleAuth = async (nameInput, emailInput) => {
     setLoading(true);
+    if (isStaticHost()) {
+      const u = localGoogleAuth(nameInput, emailInput);
+      showToast(`Berhasil masuk dengan Akun Google (${u.display_name})! ✨`);
+      onAuthSuccess(u);
+      setLoading(false);
+      setShowGoogleModal(false);
+      return;
+    }
     try {
       const res = await fetch('/api/auth/google', {
         method: 'POST',
@@ -70,19 +115,28 @@ export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }
 
       showToast(`Berhasil masuk dengan Akun Google (${data.user.display_name})! ✨`);
       onAuthSuccess(data.user);
-    } catch (err) {
-      showToast(err.message || 'Gagal masuk dengan Google.');
+    } catch {
+      const u = localGoogleAuth(nameInput, emailInput);
+      showToast(`Berhasil masuk dengan Akun Google (${u.display_name})! ✨`);
+      onAuthSuccess(u);
     } finally {
       setLoading(false);
       setShowGoogleModal(false);
     }
   };
 
-  // 3. Additional Method: Apple Sign-In (tailored for iOS & modern mobile)
+  // 3. Additional Method: Apple Sign-In
   const handleAppleAuth = async () => {
     setLoading(true);
+    const appleName = deviceInfo?.isIOS ? 'Pengguna Apple iPhone' : 'Pengguna Apple';
+    if (isStaticHost()) {
+      const u = localAppleAuth(appleName);
+      showToast(`Berhasil masuk dengan Apple ID (${u.display_name})! 🍎`);
+      onAuthSuccess(u);
+      setLoading(false);
+      return;
+    }
     try {
-      const appleName = deviceInfo?.isIOS ? 'Pengguna Apple iPhone' : 'Pengguna Apple';
       const res = await fetch('/api/auth/apple', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,17 +148,27 @@ export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }
 
       showToast(`Berhasil masuk dengan Apple ID (${data.user.display_name})! 🍎`);
       onAuthSuccess(data.user);
-    } catch (err) {
-      showToast(err.message || 'Gagal masuk dengan Apple ID.');
+    } catch {
+      const u = localAppleAuth(appleName);
+      showToast(`Berhasil masuk dengan Apple ID (${u.display_name})! 🍎`);
+      onAuthSuccess(u);
     } finally {
       setLoading(false);
     }
   };
 
-  // 4. Additional Method: Instant Guest Pass (Kiosk / Express Mode)
+  // 4. Additional Method: Instant Guest Pass
   const handleGuestPass = async (e) => {
     e.preventDefault();
     setLoading(true);
+    if (isStaticHost()) {
+      const u = localGuestPass(guestNick);
+      showToast(`Sesi Tamu aktif untuk: ${u.display_name}! 📸`);
+      onAuthSuccess(u);
+      setLoading(false);
+      setShowGuestModal(false);
+      return;
+    }
     try {
       const res = await fetch('/api/auth/guest-pass', {
         method: 'POST',
@@ -117,8 +181,10 @@ export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }
 
       showToast(`Sesi Tamu aktif untuk: ${data.user.display_name}! 📸`);
       onAuthSuccess(data.user);
-    } catch (err) {
-      showToast(err.message || 'Gagal membuat sesi Tamu.');
+    } catch {
+      const u = localGuestPass(guestNick);
+      showToast(`Sesi Tamu aktif untuk: ${u.display_name}! 📸`);
+      onAuthSuccess(u);
     } finally {
       setLoading(false);
       setShowGuestModal(false);

@@ -6,6 +6,7 @@ import SoftFileModal from './components/SoftFileModal';
 import AuthScreen from './components/AuthScreen';
 import AdminPanel from './components/AdminPanel';
 import { getDeviceInfo } from './utils/deviceDetector';
+import { isStaticHost, localCheckUser, localGetPhotos, localLogout, localDeletePhoto } from './utils/localStore';
 
 export default function App() {
   const [deviceInfo, setDeviceInfo] = useState(getDeviceInfo);
@@ -32,28 +33,43 @@ export default function App() {
   };
 
   const checkUser = async () => {
+    if (isStaticHost()) {
+      const u = localCheckUser();
+      setUser(u);
+      setAuthChecked(true);
+      return;
+    }
     try {
       const res = await fetch('/api/auth/me', { credentials: 'include' });
       const data = await res.json();
       if (data.user) {
         setUser(data.user);
       } else {
-        setUser(null);
+        const local = localCheckUser();
+        setUser(local);
       }
     } catch {
-      setUser(null);
+      const local = localCheckUser();
+      setUser(local);
     } finally {
       setAuthChecked(true);
     }
   };
 
   const loadPhotos = async () => {
+    if (isStaticHost()) {
+      const list = await localGetPhotos();
+      setPhotos(list);
+      return;
+    }
     try {
       const res = await fetch('/api/photos', { credentials: 'include' });
+      if (!res.ok) throw new Error('API not available');
       const data = await res.json();
       setPhotos(data.photos || []);
     } catch {
-      showToast('Gagal memuat foto galeri.');
+      const list = await localGetPhotos();
+      setPhotos(list);
     }
   };
 
@@ -82,18 +98,25 @@ export default function App() {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      setUser(null);
-      showToast('Berhasil keluar.');
-      loadPhotos();
-    } catch {
-      showToast('Gagal keluar.');
+    localLogout();
+    if (!isStaticHost()) {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      } catch {}
     }
+    setUser(null);
+    showToast('Berhasil keluar.');
+    loadPhotos();
   };
 
   const handleDeletePhoto = async (filename) => {
     if (!window.confirm('Hapus foto ini?')) return;
+    if (isStaticHost()) {
+      await localDeletePhoto(filename);
+      showToast('Foto berhasil dihapus.');
+      loadPhotos();
+      return;
+    }
     try {
       const res = await fetch(`/api/photos/${encodeURIComponent(filename)}`, {
         method: 'DELETE',
@@ -104,7 +127,9 @@ export default function App() {
       showToast('Foto berhasil dihapus.');
       loadPhotos();
     } catch (err) {
-      showToast(err.message);
+      await localDeletePhoto(filename);
+      showToast('Foto berhasil dihapus.');
+      loadPhotos();
     }
   };
 

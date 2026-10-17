@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import QRCode from 'qrcode';
 import { render3StripCanvas } from '../utils/stripRenderer';
 import { STRIP_THEMES } from './ThemeSelector';
+import { isStaticHost, localSavePhoto } from '../utils/localStore';
 
 export default function SoftFileModal({
   isOpen,
@@ -68,6 +69,9 @@ export default function SoftFileModal({
   }, [isOpen, frames, currentTheme]);
 
   const getEffectiveBaseUrl = useCallback(() => {
+    if (isStaticHost()) {
+      return window.location.href.split('#')[0].split('?')[0];
+    }
     if (hostMode === 'wifi' && networkInfo?.localIp && networkInfo.localIp !== '127.0.0.1') {
       return networkInfo.wifiUrl || `http://${networkInfo.localIp}:${networkInfo.port || 3000}`;
     }
@@ -79,10 +83,15 @@ export default function SoftFileModal({
   }, [hostMode, networkInfo, customBaseUrl]);
 
   const generateQr = useCallback(async (photo) => {
-    if (!photo || !photo.name) return;
+    if (!photo) return;
     try {
-      const baseUrl = getEffectiveBaseUrl().replace(/\/+$/, '');
-      const fullUrl = `${baseUrl}/download/${encodeURIComponent(photo.name)}`;
+      let fullUrl = '';
+      if (isStaticHost()) {
+        fullUrl = window.location.href.split('#')[0];
+      } else {
+        const baseUrl = getEffectiveBaseUrl().replace(/\/+$/, '');
+        fullUrl = photo.name ? `${baseUrl}/download/${encodeURIComponent(photo.name)}` : baseUrl;
+      }
       setDownloadUrl(fullUrl);
 
       const qrData = await QRCode.toDataURL(fullUrl, {
@@ -102,7 +111,7 @@ export default function SoftFileModal({
 
   // Re-generate QR whenever relevant variables change
   useEffect(() => {
-    if (photoInfo && photoInfo.name) {
+    if (photoInfo) {
       generateQr(photoInfo);
     }
   }, [photoInfo, generateQr]);
@@ -123,19 +132,31 @@ export default function SoftFileModal({
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.95));
       if (!blob) throw new Error('Gagal memproses gambar strip.');
 
-      const formData = new FormData();
-      formData.append('photo', blob, `strip_${newThemeId}_${Date.now()}.png`);
+      const filename = `strip_${newThemeId}_${Date.now()}.png`;
+      let savedPhoto = null;
 
-      const res = await fetch('/api/photos', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Gagal memperbarui soft file.');
+      if (isStaticHost()) {
+        savedPhoto = await localSavePhoto(blob, filename);
+      } else {
+        try {
+          const formData = new FormData();
+          formData.append('photo', blob, filename);
 
-      setPhotoInfo(data.photo);
-      await generateQr(data.photo);
+          const res = await fetch('/api/photos', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'Gagal memperbarui soft file.');
+          savedPhoto = data.photo;
+        } catch {
+          savedPhoto = await localSavePhoto(blob, filename);
+        }
+      }
+
+      setPhotoInfo(savedPhoto);
+      await generateQr(savedPhoto);
       if (onSaved) onSaved();
       showToast('Desain diperbarui & QR Code baru siap! ✨');
     } catch (err) {
@@ -231,35 +252,43 @@ export default function SoftFileModal({
 
               {/* Target Access Host Selector (Solusi Scan HP) */}
               <div className="qr-host-control">
-                <span className="qr-host-title">Jaringan Scan HP:</span>
-                <div className="qr-host-pills">
-                  <button
-                    type="button"
-                    className={`qr-pill ${hostMode === 'wifi' ? 'is-active' : ''}`}
-                    onClick={() => setHostMode('wifi')}
-                    title="Gunakan alamat IP Wi-Fi komputer photobooth agar dapat dibuka di HP"
-                  >
-                    <span>📶 Wi-Fi ({detectedIp})</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`qr-pill ${hostMode === 'origin' ? 'is-active' : ''}`}
-                    onClick={() => setHostMode('origin')}
-                    title="Gunakan alamat browser saat ini"
-                  >
-                    <span>💻 {window.location.host}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`qr-pill ${hostMode === 'custom' ? 'is-active' : ''}`}
-                    onClick={() => setHostMode('custom')}
-                    title="Gunakan URL Tunnel / Domain publik kustom"
-                  >
-                    <span>🌐 Custom</span>
-                  </button>
-                </div>
+                <span className="qr-host-title">Akses Jaringan:</span>
+                {isStaticHost() ? (
+                  <div className="qr-host-pills">
+                    <span className="qr-pill is-active" style={{ cursor: 'default' }}>
+                      🌐 GitHub Pages Online
+                    </span>
+                  </div>
+                ) : (
+                  <div className="qr-host-pills">
+                    <button
+                      type="button"
+                      className={`qr-pill ${hostMode === 'wifi' ? 'is-active' : ''}`}
+                      onClick={() => setHostMode('wifi')}
+                      title="Gunakan alamat IP Wi-Fi komputer photobooth agar dapat dibuka di HP"
+                    >
+                      <span>📶 Wi-Fi ({detectedIp})</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`qr-pill ${hostMode === 'origin' ? 'is-active' : ''}`}
+                      onClick={() => setHostMode('origin')}
+                      title="Gunakan alamat browser saat ini"
+                    >
+                      <span>💻 {window.location.host}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`qr-pill ${hostMode === 'custom' ? 'is-active' : ''}`}
+                      onClick={() => setHostMode('custom')}
+                      title="Gunakan URL Tunnel / Domain publik kustom"
+                    >
+                      <span>🌐 Custom</span>
+                    </button>
+                  </div>
+                )}
 
-                {hostMode === 'custom' && (
+                {!isStaticHost() && hostMode === 'custom' && (
                   <div className="qr-custom-input-box">
                     <input
                       type="url"
@@ -286,9 +315,17 @@ export default function SoftFileModal({
 
               {/* Wi-Fi Guide Notice */}
               <div className="qr-guide-box">
-                <span className="qr-guide-icon">💡</span>
+                <span className="qr-guide-icon">{isStaticHost() ? '🌐' : '💡'}</span>
                 <p className="qr-guide-text">
-                  <strong>Penting:</strong> Pastikan HP Anda terhubung ke <strong>Wi-Fi yang sama</strong> ({detectedIp.replace(/\.\d+$/, '.*')}) dengan komputer photobooth agar soft file dapat langsung diakses &amp; diunduh.
+                  {isStaticHost() ? (
+                    <>
+                      <strong>Mode GitHub Pages:</strong> Soft file disimpan di browser. Scan QR code untuk membuka Photobooth di HP Anda, atau klik tombol <strong>Unduh ke Perangkat Ini (PNG)</strong> untuk menyimpan foto langsung.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Penting:</strong> Pastikan HP Anda terhubung ke <strong>Wi-Fi yang sama</strong> ({detectedIp.replace(/\.\d+$/, '.*')}) dengan komputer photobooth agar soft file dapat langsung diakses &amp; diunduh.
+                    </>
+                  )}
                 </p>
               </div>
 

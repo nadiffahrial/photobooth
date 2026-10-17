@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isStaticHost } from '../utils/localStore';
 
 export default function AdminPanel({ isOpen, onClose, showToast }) {
   const [users, setUsers] = useState([]);
@@ -6,6 +7,13 @@ export default function AdminPanel({ isOpen, onClose, showToast }) {
 
   const fetchUsers = async () => {
     setLoading(true);
+    if (isStaticHost()) {
+      setUsers([
+        { id: 1, username: 'admin', display_name: 'Administrator (Client Mode)', role: 'admin', photo_count: 0 }
+      ]);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch('/api/admin/users', { credentials: 'include' });
       const data = await res.json();
