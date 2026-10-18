@@ -368,6 +368,11 @@ export default function AuthScreen({ onAuthSuccess, showToast, deviceInfo = {} }
         <div className="auth-security-footer">
           <span>🛡️ Dilindungi Enkripsi Password scrypt, Rate Limiter &amp; RBAC</span>
         </div>
+
+        {/* Copyright notice */}
+        <div className="auth-copyright-note">
+          © {new Date().getFullYear()} Snap Studio · Copyright by <strong>Nadif Ahmad Fahrial</strong>
+        </div>
       </div>
 
       {/* Guest Pass Nickname Dialog */}

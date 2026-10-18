@@ -2,6 +2,7 @@
   "name": "photobooth",
   "version": "1.0.0",
   "description": "Aplikasi photobooth modern dengan Node.js, React, Express, dan Flask",
+  "author": "Nadif Ahmad Fahrial",
   "main": "server.js",
   "type": "module",
   "scripts": {

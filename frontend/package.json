@@ -2,6 +2,7 @@
   "name": "photobooth-frontend",
   "private": true,
   "version": "1.0.0",
+  "author": "Nadif Ahmad Fahrial",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -192,7 +192,7 @@ export function render3StripCanvas(canvas, framesInput = [], theme = 'film-noir'
     ctx.fillStyle = '#8A8A92';
     ctx.font = '12px "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('SN-35MM-NOIR-7702 · SNAP STUDIO KODAK REEL', W / 2, 1895);
+    ctx.fillText('SN-35MM-NOIR-7702 · © NADIF AHMAD FAHRIAL', W / 2, 1895);
   }
 
   /* 2. HARU PASTEL (KOREA LIFE FOUR CUTS) */
@@ -251,8 +251,12 @@ export function render3StripCanvas(canvas, framesInput = [], theme = 'film-noir'
     ctx.fillText(`SNAP STUDIO SEOUL · ${dateFormatted}`, W / 2, 1815);
 
     ctx.fillStyle = '#C2829D';
-    ctx.font = '24px sans-serif';
-    ctx.fillText('🎀 ♡ 🌸', W / 2, 1855);
+    ctx.font = '22px sans-serif';
+    ctx.fillText('🎀 ♡ 🌸', W / 2, 1850);
+
+    ctx.fillStyle = '#A35378';
+    ctx.font = 'bold 12px "DM Sans", sans-serif';
+    ctx.fillText('© Nadif Ahmad Fahrial · Snap Studio', W / 2, 1888);
   }
 
   /* 3. Y2K CYBER */
@@ -304,7 +308,7 @@ export function render3StripCanvas(canvas, framesInput = [], theme = 'film-noir'
     ctx.fillStyle = '#FF007F';
     ctx.font = 'bold 13px "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('SERIAL # 992-04-Y2K-NEON · SNAP TECH SYS', W / 2, 1845);
+    ctx.fillText('SERIAL # 992-04-Y2K · © NADIF AHMAD FAHRIAL', W / 2, 1845);
   }
 
   /* 4. VINTAGE RETRO */
@@ -350,6 +354,9 @@ export function render3StripCanvas(canvas, framesInput = [], theme = 'film-noir'
     ctx.textAlign = 'left';
     ctx.fillText('"Every picture tells a story', 310, 1815);
     ctx.fillText('that time cannot erase."', 310, 1838);
+    ctx.font = 'italic 12px Georgia, serif';
+    ctx.fillStyle = '#6E4D34';
+    ctx.fillText('~ Created by Nadif Ahmad Fahrial ~', 310, 1862);
   }
 
   /* 5. MINIMAL LUXURY */
@@ -393,7 +400,11 @@ export function render3StripCanvas(canvas, framesInput = [], theme = 'film-noir'
 
     ctx.fillStyle = '#C5A059';
     ctx.font = '10px "DM Sans", sans-serif';
-    ctx.fillText('✦ LIMITED EDITION 03 / 500 ✦', W / 2, 1840);
+    ctx.fillText('✦ LIMITED EDITION 03 / 500 ✦', W / 2, 1835);
+
+    ctx.fillStyle = '#888888';
+    ctx.font = '10px "DM Sans", sans-serif';
+    ctx.fillText('© NADIF AHMAD FAHRIAL', W / 2, 1865);
   }
 
   /* 6. MATCHA KAWAII */
@@ -449,6 +460,10 @@ export function render3StripCanvas(canvas, framesInput = [], theme = 'film-noir'
     ctx.fillStyle = '#516E4C';
     ctx.font = '13px "DM Sans", sans-serif';
     ctx.fillText('✦ snap studio · matcha edition · 2026 ✦', W / 2, 1815);
+
+    ctx.fillStyle = '#3E5638';
+    ctx.font = 'bold 11px "DM Sans", sans-serif';
+    ctx.fillText('© Nadif Ahmad Fahrial', W / 2, 1845);
   }
 }
 

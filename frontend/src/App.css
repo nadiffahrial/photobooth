@@ -2071,3 +2071,55 @@ body {
   padding: 24px;
 }
 
+/* Studio Footer Copyright */
+.studio-footer {
+  margin-top: 56px;
+  padding: 32px 20px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  background: rgba(9, 8, 14, 0.7);
+}
+
+.footer-content {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-brand {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #c084fc;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.footer-copyright {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.footer-copyright strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Auth Screen Copyright Note */
+.auth-copyright-note {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.76rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.auth-copyright-note strong {
+  color: #c084fc;
+  font-weight: 700;
+}
+

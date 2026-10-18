@@ -74,3 +74,11 @@ Akses di `http://localhost:5000`.
 ```bash
 .\.venv\Scripts\python.exe -m unittest discover tests
 ```
+
+---
+
+## Hak Cipta & Pengembang
+© 2026 Snap Studio Photobooth. All Rights Reserved.  
+**Created & Designed by Nadif Ahmad Fahrial**.  
+Live Demo: [https://nadiffahrial.github.io/photobooth/](https://nadiffahrial.github.io/photobooth/)
+

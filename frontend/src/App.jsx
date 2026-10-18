@@ -328,6 +328,16 @@ export default function App() {
         />
       </main>
 
+      {/* Studio Footer with Copyright */}
+      <footer className="studio-footer">
+        <div className="footer-content">
+          <p className="footer-brand">✦ Snap Studio Photobooth</p>
+          <p className="footer-copyright">
+            © {new Date().getFullYear()} Snap Studio · Copyright by <strong>Nadif Ahmad Fahrial</strong>. All rights reserved.
+          </p>
+        </div>
+      </footer>
+
       {/* STEP 3: MODAL SOFT FILE BERBENTUK QR CODE (MUNCUL OTOMATIS KETIKA SESI FOTO BERAKHIR) */}
       <SoftFileModal
         isOpen={isSoftFileModalOpen}
