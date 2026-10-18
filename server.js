@@ -31,8 +31,13 @@ if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// Initialize SQLite database
+// Initialize SQLite database with low-RAM footprint
 const db = new DatabaseSync(DB_PATH);
+db.exec(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA synchronous = NORMAL;
+    PRAGMA cache_size = -1000;
+`);
 
 // Create tables if not exists
 db.exec(`
