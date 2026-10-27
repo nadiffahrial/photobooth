@@ -8,8 +8,8 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { DatabaseSync } from 'node:sqlite';
 import dotenv from 'dotenv';
+import { db, initDatabase } from './database.js';
 
 dotenv.config();
 
@@ -17,11 +17,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.NODE_PORT || process.env.PORT || 3000;
-const DB_PATH = path.join(__dirname, 'photobooth.db');
 const UPLOAD_DIR = path.join(__dirname, 'photos');
 
 // Cyber Security Validation Constants
-const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,30}$/;
+const USERNAME_REGEX = /^[a-zA-Z0-9_@.-]{3,50}$/;
 const FILENAME_REGEX = /^photo_[a-zA-Z0-9_.-]+\.(png|jpg|jpeg|webp)$/;
 const ALLOWED_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const ALLOWED_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -30,36 +29,6 @@ const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 jam inactivity timeout
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
-
-// Initialize SQLite database with low-RAM footprint
-const db = new DatabaseSync(DB_PATH);
-db.exec(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA synchronous = NORMAL;
-    PRAGMA cache_size = -1000;
-`);
-
-// Create tables if not exists
-db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL COLLATE NOCASE,
-        password_hash TEXT NOT NULL,
-        display_name TEXT,
-        role TEXT NOT NULL DEFAULT 'user',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS photos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        filename TEXT UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_photos_user ON photos(user_id);
-`);
 
 // Password utilities (100% compatible with Werkzeug scrypt format)
 function hashPassword(password) {
@@ -233,20 +202,6 @@ function getCookieOptions(req) {
     };
 }
 
-// Ensure default admin user exists
-const adminCheck = db.prepare('SELECT id FROM users WHERE role = ? LIMIT 1').get('admin');
-if (!adminCheck) {
-    const adminExists = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
-    if (adminExists) {
-        db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', adminExists.id);
-    } else {
-        const adminHash = hashPassword('admin123');
-        db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
-            .run('admin', adminHash, 'Administrator', 'admin');
-        console.warn('⚠️  [SECURITY AUDIT] Akun admin default aktif: admin / admin123. Segera ubah password di lingkungan produksi!');
-    }
-}
-
 const app = express();
 
 // Security Hardening: Disable Express fingerprinting
@@ -354,7 +309,7 @@ function requireAdmin(req, res, next) {
 /* ==========================================================================
    AUTH API ENDPOINTS (Secured with Rate Limiting & Strict Validation)
    ========================================================================== */
-app.post('/api/auth/register', authRateLimiter, (req, res) => {
+app.post('/api/auth/register', authRateLimiter, async (req, res) => {
     const { username, password, display_name } = req.body;
     const cleanUsername = (username || '').trim();
     const cleanPassword = password || '';
@@ -371,14 +326,13 @@ app.post('/api/auth/register', authRateLimiter, (req, res) => {
     }
 
     try {
-        const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(cleanUsername);
+        const existing = await db.get('SELECT id FROM users WHERE username = ?', [cleanUsername]);
         if (existing) {
             return res.status(400).json({ error: 'Username sudah digunakan. Silakan pilih username lain.' });
         }
 
         const hash = hashPassword(cleanPassword);
-        const result = db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
-            .run(cleanUsername, hash, cleanName, 'user');
+        const result = await db.run('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)', [cleanUsername, hash, cleanName, 'user']);
 
         const user = { id: Number(result.lastInsertRowid), username: cleanUsername, display_name: cleanName, role: 'user' };
         const token = createSession(user);
@@ -391,7 +345,7 @@ app.post('/api/auth/register', authRateLimiter, (req, res) => {
     }
 });
 
-app.post('/api/auth/login', authRateLimiter, (req, res) => {
+app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     const { username, password } = req.body;
     const cleanUsername = (username || '').trim();
     const cleanPassword = password || '';
@@ -401,7 +355,7 @@ app.post('/api/auth/login', authRateLimiter, (req, res) => {
     }
 
     try {
-        const row = db.prepare('SELECT id, username, password_hash, display_name, role FROM users WHERE username = ?').get(cleanUsername);
+        const row = await db.get('SELECT id, username, password_hash, display_name, role FROM users WHERE username = ?', [cleanUsername]);
         if (!row || !verifyPassword(cleanPassword, row.password_hash)) {
             return res.status(401).json({ error: 'Username atau password salah.' });
         }
@@ -417,7 +371,7 @@ app.post('/api/auth/login', authRateLimiter, (req, res) => {
     }
 });
 
-app.post('/api/auth/change-password', requireAuth, authRateLimiter, (req, res) => {
+app.post('/api/auth/change-password', requireAuth, authRateLimiter, async (req, res) => {
     const { current_password, new_password } = req.body;
     if (!current_password || !new_password) {
         return res.status(400).json({ error: 'Password saat ini dan password baru harus diisi.' });
@@ -430,13 +384,13 @@ app.post('/api/auth/change-password', requireAuth, authRateLimiter, (req, res) =
     }
 
     try {
-        const userRow = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
+        const userRow = await db.get('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
         if (!userRow || !verifyPassword(current_password, userRow.password_hash)) {
             return res.status(400).json({ error: 'Password saat ini tidak cocok.' });
         }
 
         const newHash = hashPassword(new_password);
-        db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, req.user.id);
+        await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, req.user.id]);
         return res.json({ success: true, message: 'Password berhasil diperbarui.' });
     } catch (err) {
         console.error('[Security] Change password error:', err.message);
@@ -457,7 +411,7 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Additional Auth Method: Google Sign-In
-app.post('/api/auth/google', authRateLimiter, (req, res) => {
+app.post('/api/auth/google', authRateLimiter, async (req, res) => {
     const { email, name } = req.body;
     const cleanEmail = sanitizeText(email || '', 60);
     const cleanName = sanitizeText(name || 'Pengguna Google', 40);
@@ -465,12 +419,11 @@ app.post('/api/auth/google', authRateLimiter, (req, res) => {
     const username = `g_${identifier}`.slice(0, 30);
 
     try {
-        let userRow = db.prepare('SELECT id, username, display_name, role FROM users WHERE username = ?').get(username);
+        let userRow = await db.get('SELECT id, username, display_name, role FROM users WHERE username = ?', [username]);
         if (!userRow) {
             const randomPassword = crypto.randomBytes(32).toString('hex');
             const hash = hashPassword(randomPassword);
-            const result = db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
-                .run(username, hash, cleanName, 'user');
+            const result = await db.run('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)', [username, hash, cleanName, 'user']);
             userRow = { id: Number(result.lastInsertRowid), username, display_name: cleanName, role: 'user' };
         }
         const user = { id: userRow.id, username: userRow.username, display_name: userRow.display_name, role: userRow.role };
@@ -484,7 +437,7 @@ app.post('/api/auth/google', authRateLimiter, (req, res) => {
 });
 
 // Additional Auth Method: Apple Sign-In
-app.post('/api/auth/apple', authRateLimiter, (req, res) => {
+app.post('/api/auth/apple', authRateLimiter, async (req, res) => {
     const { name } = req.body;
     const cleanName = sanitizeText(name || 'Pengguna Apple', 40);
     const rand = crypto.randomBytes(3).toString('hex');
@@ -493,8 +446,7 @@ app.post('/api/auth/apple', authRateLimiter, (req, res) => {
     try {
         const randomPassword = crypto.randomBytes(32).toString('hex');
         const hash = hashPassword(randomPassword);
-        const result = db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
-            .run(username, hash, cleanName, 'user');
+        const result = await db.run('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)', [username, hash, cleanName, 'user']);
         const user = { id: Number(result.lastInsertRowid), username, display_name: cleanName, role: 'user' };
         const token = createSession(user);
         res.cookie('session_token', token, getCookieOptions(req));
@@ -506,7 +458,7 @@ app.post('/api/auth/apple', authRateLimiter, (req, res) => {
 });
 
 // Additional Auth Method: Instant Guest Pass (Kiosk / Quick Pass)
-app.post('/api/auth/guest-pass', authRateLimiter, (req, res) => {
+app.post('/api/auth/guest-pass', authRateLimiter, async (req, res) => {
     const { nickname } = req.body;
     const cleanNick = sanitizeText(nickname || '', 30) || 'Tamu Studio';
     const rand = crypto.randomBytes(3).toString('hex');
@@ -515,8 +467,7 @@ app.post('/api/auth/guest-pass', authRateLimiter, (req, res) => {
     try {
         const randomPassword = crypto.randomBytes(32).toString('hex');
         const hash = hashPassword(randomPassword);
-        const result = db.prepare('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)')
-            .run(username, hash, cleanNick, 'user');
+        const result = await db.run('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)', [username, hash, cleanNick, 'user']);
         const user = { id: Number(result.lastInsertRowid), username, display_name: cleanNick, role: 'user' };
         const token = createSession(user);
         res.cookie('session_token', token, getCookieOptions(req));
@@ -530,30 +481,30 @@ app.post('/api/auth/guest-pass', authRateLimiter, (req, res) => {
 /* ==========================================================================
    PHOTO API ENDPOINTS (Secured with Rate Limiting & Magic Byte Verification)
    ========================================================================== */
-app.get('/api/photos', (req, res) => {
+app.get('/api/photos', async (req, res) => {
     const user = getSessionUser(req);
     try {
         let rows;
         if (user && user.role === 'admin') {
-            rows = db.prepare(`
+            rows = await db.all(`
                 SELECT p.filename, p.created_at, p.user_id, u.username, u.display_name
                 FROM photos p
                 LEFT JOIN users u ON p.user_id = u.id
                 ORDER BY p.created_at DESC
-            `).all();
+            `);
         } else if (user) {
-            rows = db.prepare(`
+            rows = await db.all(`
                 SELECT filename, created_at, user_id
                 FROM photos
                 WHERE user_id = ? OR user_id IS NULL
                 ORDER BY created_at DESC
-            `).all(user.id);
+            `, [user.id]);
         } else {
-            rows = db.prepare(`
+            rows = await db.all(`
                 SELECT filename, created_at, user_id
                 FROM photos
                 ORDER BY created_at DESC
-            `).all();
+            `);
         }
 
         const photos = rows.map(r => ({
@@ -572,7 +523,7 @@ app.get('/api/photos', (req, res) => {
 });
 
 app.post('/api/photos', uploadRateLimiter, (req, res) => {
-    upload.single('photo')(req, res, (uploadErr) => {
+    upload.single('photo')(req, res, async (uploadErr) => {
         if (uploadErr) {
             return res.status(400).json({ error: uploadErr.message || 'File upload ditolak oleh verifikasi keamanan.' });
         }
@@ -591,8 +542,7 @@ app.post('/api/photos', uploadRateLimiter, (req, res) => {
         const userId = user ? user.id : null;
 
         try {
-            db.prepare('INSERT INTO photos (user_id, filename) VALUES (?, ?)')
-                .run(userId, req.file.filename);
+            await db.run('INSERT INTO photos (user_id, filename) VALUES (?, ?)', [userId, req.file.filename]);
 
             return res.json({
                 success: true,
@@ -609,7 +559,7 @@ app.post('/api/photos', uploadRateLimiter, (req, res) => {
     });
 });
 
-app.delete('/api/photos/:filename', (req, res) => {
+app.delete('/api/photos/:filename', async (req, res) => {
     const rawFilename = req.params.filename;
     const filename = path.basename(rawFilename);
 
@@ -620,7 +570,7 @@ app.delete('/api/photos/:filename', (req, res) => {
     const user = getSessionUser(req);
 
     try {
-        const photo = db.prepare('SELECT id, user_id FROM photos WHERE filename = ?').get(filename);
+        const photo = await db.get('SELECT id, user_id FROM photos WHERE filename = ?', [filename]);
         if (!photo) {
             return res.status(404).json({ error: 'Foto tidak ditemukan.' });
         }
@@ -630,7 +580,7 @@ app.delete('/api/photos/:filename', (req, res) => {
             return res.status(403).json({ error: 'Anda tidak memiliki hak untuk menghapus foto ini.' });
         }
 
-        db.prepare('DELETE FROM photos WHERE filename = ?').run(filename);
+        await db.run('DELETE FROM photos WHERE filename = ?', [filename]);
 
         const filePath = path.join(UPLOAD_DIR, filename);
         if (fs.existsSync(filePath)) {
@@ -874,15 +824,15 @@ app.get('/api/network-info', (req, res) => {
 /* ==========================================================================
    ADMIN MANAGEMENT API ENDPOINTS (RBAC Enforcement)
    ========================================================================== */
-app.get('/api/admin/users', requireAdmin, (req, res) => {
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
     try {
-        const users = db.prepare(`
+        const users = await db.all(`
             SELECT u.id, u.username, u.display_name, u.role, u.created_at, COUNT(p.id) AS photo_count
             FROM users u
             LEFT JOIN photos p ON u.id = p.user_id
-            GROUP BY u.id
+            GROUP BY u.id, u.username, u.display_name, u.role, u.created_at
             ORDER BY u.created_at DESC
-        `).all();
+        `);
         return res.json({ users });
     } catch (err) {
         console.error('[Security] Admin load users error:', err.message);
@@ -890,7 +840,7 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
     }
 });
 
-app.post('/api/admin/users/:id/role', requireAdmin, (req, res) => {
+app.post('/api/admin/users/:id/role', requireAdmin, async (req, res) => {
     const targetId = Number(req.params.id);
     if (!Number.isInteger(targetId) || targetId <= 0) {
         return res.status(400).json({ error: 'ID pengguna tidak valid.' });
@@ -906,7 +856,7 @@ app.post('/api/admin/users/:id/role', requireAdmin, (req, res) => {
     }
 
     try {
-        db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, targetId);
+        await db.run('UPDATE users SET role = ? WHERE id = ?', [role, targetId]);
         return res.json({ success: true, message: `Role berhasil diubah menjadi ${role}.` });
     } catch (err) {
         console.error('[Security] Admin change role error:', err.message);
@@ -914,7 +864,7 @@ app.post('/api/admin/users/:id/role', requireAdmin, (req, res) => {
     }
 });
 
-app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
+app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
     const targetId = Number(req.params.id);
     if (!Number.isInteger(targetId) || targetId <= 0) {
         return res.status(400).json({ error: 'ID pengguna tidak valid.' });
@@ -926,7 +876,7 @@ app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
 
     try {
         // Hapus file fisik foto milik user tersebut terlebih dahulu
-        const userPhotos = db.prepare('SELECT filename FROM photos WHERE user_id = ?').all(targetId);
+        const userPhotos = await db.all('SELECT filename FROM photos WHERE user_id = ?', [targetId]);
         for (const p of userPhotos) {
             const pPath = path.join(UPLOAD_DIR, p.filename);
             if (fs.existsSync(pPath)) {
@@ -934,7 +884,7 @@ app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
             }
         }
 
-        db.prepare('DELETE FROM users WHERE id = ?').run(targetId);
+        await db.run('DELETE FROM users WHERE id = ?', [targetId]);
         return res.json({ success: true, message: 'Pengguna dan fotonya berhasil dihapus.' });
     } catch (err) {
         console.error('[Security] Admin delete user error:', err.message);
@@ -944,7 +894,7 @@ app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', runtime: 'node.js', version: process.version });
+    res.json({ status: 'ok', runtime: 'node.js', version: process.version, database: db.type });
 });
 
 // Production: serve React build if available
@@ -962,9 +912,21 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Terjadi kesalahan internal pada server.' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🛡️  [Cyber Security Hardened] Photobooth server berjalan di:`);
-    console.log(`   - Local:   http://localhost:${PORT}`);
-    console.log(`   - Network: http://0.0.0.0:${PORT}`);
-    console.log(`   - Proteksi aktif: Helmet, CSP, Rate Limiting, Magic Byte Check, RBAC, Safe Cookies\n`);
-});
+async function startServer() {
+    try {
+        await initDatabase({ hashPassword });
+    } catch (err) {
+        console.error('Fatal database initialization error:', err);
+        process.exit(1);
+    }
+
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`\n🛡️  [Cyber Security Hardened] Photobooth server berjalan di:`);
+        console.log(`   - Local:    http://localhost:${PORT}`);
+        console.log(`   - Network:  http://0.0.0.0:${PORT}`);
+        console.log(`   - Database: ${db.type.toUpperCase()}`);
+        console.log(`   - Proteksi aktif: Helmet, CSP, Rate Limiting, Magic Byte Check, RBAC, Safe Cookies\n`);
+    });
+}
+
+startServer();

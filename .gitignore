@@ -6,7 +6,11 @@ __pycache__/
 .pytest_cache/
 photos/
 *.db
+*.db-shm
+*.db-wal
+*.db-*
 *.sqlite3
+.vscode/
 .DS_Store
 node_modules/
 frontend/node_modules/

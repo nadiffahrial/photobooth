@@ -1,0 +1,383 @@
+<svg width="2250" height="1480" viewBox="0 0 2250 1480" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+    <defs>
+        <!-- Background Gradient -->
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0a0f1d"/>
+            <stop offset="40%" stop-color="#111827"/>
+            <stop offset="100%" stop-color="#030712"/>
+        </linearGradient>
+
+        <!-- System Boundary Gradient -->
+        <linearGradient id="sysBoxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#172033" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#0d1527" stop-opacity="0.98"/>
+        </linearGradient>
+
+        <!-- Module Use Case Gradients -->
+        <!-- 1. Kamera & Shoot (Blue / Cyan) -->
+        <linearGradient id="ucCamera" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0369a1"/>
+            <stop offset="100%" stop-color="#075985"/>
+        </linearGradient>
+
+        <!-- 2. Personalisasi & Styling (Purple / Violet) -->
+        <linearGradient id="ucStyle" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6d28d9"/>
+            <stop offset="100%" stop-color="#5b21b6"/>
+        </linearGradient>
+
+        <!-- 3. Output & Sharing (Emerald / Teal) -->
+        <linearGradient id="ucOutput" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#047857"/>
+            <stop offset="100%" stop-color="#065f46"/>
+        </linearGradient>
+
+        <!-- 4. Autentikasi (Amber / Gold) -->
+        <linearGradient id="ucAuth" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#b45309"/>
+            <stop offset="100%" stop-color="#92400e"/>
+        </linearGradient>
+
+        <!-- 5. Admin & Security (Rose / Crimson) -->
+        <linearGradient id="ucAdmin" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#be123c"/>
+            <stop offset="100%" stop-color="#9f1239"/>
+        </linearGradient>
+
+        <!-- Glow & Shadow Filters -->
+        <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.6"/>
+        </filter>
+        <filter id="subtleShadow" x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.4"/>
+        </filter>
+
+        <!-- Arrow Markers -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#94a3b8" />
+        </marker>
+        <marker id="arrowInclude" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#38bdf8" />
+        </marker>
+        <marker id="arrowExtend" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 9 5 L 0 9 z" fill="#c084fc" />
+        </marker>
+        <marker id="generalizeArrow" viewBox="0 0 14 14" refX="13" refY="7" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
+            <path d="M 0 1 L 13 7 L 0 13 z" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+        </marker>
+    </defs>
+
+    <!-- Canvas Background -->
+    <rect width="2250" height="1480" fill="url(#bgGrad)"/>
+    
+    <!-- Tech Grid Background -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.7" stroke-opacity="0.5"/>
+    </pattern>
+    <rect width="2250" height="1480" fill="url(#grid)"/>
+
+    <!-- ========================================== -->
+    <!-- HEADER & TITLE                             -->
+    <!-- ========================================== -->
+    <g transform="translate(1125, 40)" text-anchor="middle">
+        <text font-size="28" font-weight="900" fill="#f8fafc" letter-spacing="2">USE CASE DIAGRAM: SISTEM PHOTOBOOTH WEB</text>
+        <text y="26" font-size="14" font-weight="500" fill="#94a3b8" letter-spacing="0.5">Arsitektur Fungsional Sistem Berbasis Web (Node.js Express + XAMPP MySQL / SQLite Fallback)</text>
+    </g>
+
+    <!-- ========================================== -->
+    <!-- SYSTEM BOUNDARY BOX                        -->
+    <!-- ========================================== -->
+    <rect x="270" y="105" width="1550" height="1235" rx="22" fill="url(#sysBoxGrad)" stroke="#38bdf8" stroke-width="2" stroke-dasharray="8 5" filter="url(#dropShadow)"/>
+    
+    <!-- System Boundary Label Tag -->
+    <g transform="translate(295, 135)">
+        <rect x="0" y="-18" width="310" height="32" rx="8" fill="#0284c7" filter="url(#subtleShadow)"/>
+        <text x="14" y="3" font-size="13.5" font-weight="700" fill="#ffffff" letter-spacing="0.8">SYSTEM: Photobooth Studio Web App</text>
+    </g>
+
+    <!-- Section Category Containers inside System Boundary -->
+    <!-- Container 1: Modul Kamera & Pemotretan (Top Left) -->
+    <rect x="300" y="160" width="455" height="355" rx="14" fill="#0b1329" stroke="#0284c7" stroke-width="1.2" stroke-opacity="0.5"/>
+    <rect x="315" y="172" width="235" height="24" rx="6" fill="#0369a1" opacity="0.3"/>
+    <text x="325" y="189" font-size="12" font-weight="800" fill="#38bdf8" letter-spacing="0.6">[MODUL 1] KAMERA &amp; PEMOTRETAN</text>
+
+    <!-- Container 2: Modul Kustomisasi & Desain (Bottom Left) -->
+    <rect x="300" y="535" width="455" height="485" rx="14" fill="#0b1329" stroke="#7c3aed" stroke-width="1.2" stroke-opacity="0.5"/>
+    <rect x="315" y="547" width="230" height="24" rx="6" fill="#6d28d9" opacity="0.3"/>
+    <text x="325" y="564" font-size="12" font-weight="800" fill="#c084fc" letter-spacing="0.6">[MODUL 2] KUSTOMISASI &amp; FRAME</text>
+
+    <!-- Container 3: Modul Ekspor, QR & Galeri (Top Center) -->
+    <rect x="785" y="160" width="475" height="425" rx="14" fill="#0b1329" stroke="#059669" stroke-width="1.2" stroke-opacity="0.5"/>
+    <rect x="800" y="172" width="235" height="24" rx="6" fill="#047857" opacity="0.3"/>
+    <text x="810" y="189" font-size="12" font-weight="800" fill="#34d399" letter-spacing="0.6">[MODUL 3] EKSPOR, QR &amp; GALERI</text>
+
+    <!-- Container 4: Modul Autentikasi Pengguna (Bottom Center) -->
+    <rect x="785" y="605" width="475" height="415" rx="14" fill="#0b1329" stroke="#d97706" stroke-width="1.2" stroke-opacity="0.5"/>
+    <rect x="800" y="617" width="235" height="24" rx="6" fill="#b45309" opacity="0.3"/>
+    <text x="810" y="634" font-size="12" font-weight="800" fill="#fbbf24" letter-spacing="0.6">[MODUL 4] AUTENTIKASI PENGGUNA</text>
+
+    <!-- Container 5: Modul Administrasi & Keamanan (Right Column) -->
+    <rect x="1290" y="160" width="505" height="860" rx="14" fill="#0b1329" stroke="#e11d48" stroke-width="1.2" stroke-opacity="0.5"/>
+    <rect x="1305" y="172" width="280" height="24" rx="6" fill="#be123c" opacity="0.3"/>
+    <text x="1315" y="189" font-size="12" font-weight="800" fill="#fb7185" letter-spacing="0.6">[MODUL 5] ADMINISTRASI &amp; KEAMANAN</text>
+
+<g id="UC1" filter="url(#subtleShadow)">
+  <ellipse cx="440" cy="245" rx="115" ry="32" fill="url(#ucCamera)" stroke="#38bdf8" stroke-width="1.8"/>
+  <text x="440" y="240" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Mengambil Foto</text>
+  <text x="440" y="258" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Multi-shot Capture)</text>
+</g>
+<g id="UC2" filter="url(#subtleShadow)">
+  <ellipse cx="665" cy="245" rx="75" ry="27" fill="url(#ucCamera)" stroke="#38bdf8" stroke-width="1.8"/>
+  <text x="665" y="240" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Countdown Timer</text>
+  <text x="665" y="258" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(3s, 5s, 10s)</text>
+</g>
+<g id="UC3" filter="url(#subtleShadow)">
+  <ellipse cx="440" cy="345" rx="105" ry="30" fill="url(#ucCamera)" stroke="#38bdf8" stroke-width="1.8"/>
+  <text x="440" y="349" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Retake / Ulangi Foto</text>
+</g>
+<g id="UC4" filter="url(#subtleShadow)">
+  <ellipse cx="655" cy="345" rx="85" ry="27" fill="url(#ucCamera)" stroke="#38bdf8" stroke-width="1.8"/>
+  <text x="655" y="340" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Beralih Kamera</text>
+  <text x="655" y="358" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Front / Back)</text>
+</g>
+<g id="UC_P1" filter="url(#subtleShadow)">
+  <ellipse cx="525" cy="445" rx="130" ry="28" fill="url(#ucCamera)" stroke="#38bdf8" stroke-width="1.8"/>
+  <text x="525" y="440" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Atur Sesi Multi-Shot</text>
+  <text x="525" y="458" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(1, 2, 3, 4 Foto)</text>
+</g>
+<g id="UC5" filter="url(#subtleShadow)">
+  <ellipse cx="525" cy="620" rx="140" ry="30" fill="url(#ucStyle)" stroke="#c084fc" stroke-width="1.8"/>
+  <text x="525" y="615" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Pilih Strip Layout & Grid</text>
+  <text x="525" y="633" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(1x1, 2x2, 3-Strip, 4-Strip)</text>
+</g>
+<g id="UC6" filter="url(#subtleShadow)">
+  <ellipse cx="525" cy="720" rx="145" ry="32" fill="url(#ucStyle)" stroke="#c084fc" stroke-width="1.8"/>
+  <text x="525" y="715" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Pilih Border & Slideshow</text>
+  <text x="525" y="733" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Color Picker / Slideshow)</text>
+</g>
+<g id="UC7" filter="url(#subtleShadow)">
+  <ellipse cx="525" cy="820" rx="140" ry="30" fill="url(#ucStyle)" stroke="#c084fc" stroke-width="1.8"/>
+  <text x="525" y="815" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Terapkan Filter & Efek</text>
+  <text x="525" y="833" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(B&W, Vintage, Cyber, Warm)</text>
+</g>
+<g id="UC8" filter="url(#subtleShadow)">
+  <ellipse cx="525" cy="920" rx="140" ry="30" fill="url(#ucStyle)" stroke="#c084fc" stroke-width="1.8"/>
+  <text x="525" y="915" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Tambahkan Stiker & Teks</text>
+  <text x="525" y="933" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Emoji, Custom Caption, Date)</text>
+</g>
+<g id="UC9" filter="url(#subtleShadow)">
+  <ellipse cx="1020" cy="240" rx="145" ry="30" fill="url(#ucOutput)" stroke="#34d399" stroke-width="1.8"/>
+  <text x="1020" y="235" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Unduh Soft-File Hasil Foto</text>
+  <text x="1020" y="253" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Format PNG Berkualitas Tinggi)</text>
+</g>
+<g id="UC10" filter="url(#subtleShadow)">
+  <ellipse cx="1020" cy="330" rx="140" ry="30" fill="url(#ucOutput)" stroke="#34d399" stroke-width="1.8"/>
+  <text x="1020" y="325" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Generate QR Code Soft-File</text>
+  <text x="1020" y="343" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Akses Unduh via Smartphone)</text>
+</g>
+<g id="UC11" filter="url(#subtleShadow)">
+  <ellipse cx="1020" cy="420" rx="130" ry="28" fill="url(#ucOutput)" stroke="#34d399" stroke-width="1.8"/>
+  <text x="1020" y="415" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Cetak Foto Langsung</text>
+  <text x="1020" y="433" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Printer Kiosk / Studio Strip)</text>
+</g>
+<g id="UC12" filter="url(#subtleShadow)">
+  <ellipse cx="1020" cy="510" rx="140" ry="30" fill="url(#ucOutput)" stroke="#34d399" stroke-width="1.8"/>
+  <text x="1020" y="505" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Simpan ke Galeri Studio</text>
+  <text x="1020" y="523" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Katalog Foto & Pratinjau)</text>
+</g>
+<g id="UC13" filter="url(#subtleShadow)">
+  <ellipse cx="1020" cy="680" rx="135" ry="28" fill="url(#ucAuth)" stroke="#fbbf24" stroke-width="1.8"/>
+  <text x="1020" y="675" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Registrasi Akun Baru</text>
+  <text x="1020" y="693" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Validasi Sandi & Anti-XSS)</text>
+</g>
+<g id="UC14" filter="url(#subtleShadow)">
+  <ellipse cx="1020" cy="770" rx="145" ry="32" fill="url(#ucAuth)" stroke="#fbbf24" stroke-width="1.8"/>
+  <text x="1020" y="765" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Login ke Sistem Photobooth</text>
+  <text x="1020" y="783" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Password, Google, Apple, Tamu)</text>
+</g>
+<g id="UC15" filter="url(#subtleShadow)">
+  <ellipse cx="1020" cy="860" rx="130" ry="28" fill="url(#ucAuth)" stroke="#fbbf24" stroke-width="1.8"/>
+  <text x="1020" y="864" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Ubah Password Akun</text>
+</g>
+<g id="UC16" filter="url(#subtleShadow)">
+  <ellipse cx="1020" cy="950" rx="125" ry="28" fill="url(#ucAuth)" stroke="#fbbf24" stroke-width="1.8"/>
+  <text x="1020" y="954" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Logout Sesi Pengguna</text>
+</g>
+<g id="UC17" filter="url(#subtleShadow)">
+  <ellipse cx="1540" cy="240" rx="155" ry="32" fill="url(#ucAdmin)" stroke="#fb7185" stroke-width="1.8"/>
+  <text x="1540" y="235" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Kelola Pengguna (RBAC)</text>
+  <text x="1540" y="253" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Lihat User, Ganti Role, Hapus User)</text>
+</g>
+<g id="UC18" filter="url(#subtleShadow)">
+  <ellipse cx="1540" cy="350" rx="150" ry="32" fill="url(#ucAdmin)" stroke="#fb7185" stroke-width="1.8"/>
+  <text x="1540" y="345" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Moderasi Seluruh Galeri</text>
+  <text x="1540" y="363" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Hapus Foto Melanggar Aturan)</text>
+</g>
+<g id="UC19" filter="url(#subtleShadow)">
+  <ellipse cx="1540" cy="465" rx="155" ry="34" fill="url(#ucAdmin)" stroke="#fb7185" stroke-width="1.8"/>
+  <text x="1540" y="460" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Monitoring Koneksi Database</text>
+  <text x="1540" y="478" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(XAMPP MySQL / SQLite Fallback)</text>
+</g>
+<g id="UC20" filter="url(#subtleShadow)">
+  <ellipse cx="1540" cy="590" rx="155" ry="34" fill="url(#ucAdmin)" stroke="#fb7185" stroke-width="1.8"/>
+  <text x="1540" y="585" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Proteksi Keamanan Sistem</text>
+  <text x="1540" y="603" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Rate Limit, Magic Bytes, CSP)</text>
+</g>
+<g id="UC21" filter="url(#subtleShadow)">
+  <ellipse cx="1540" cy="715" rx="145" ry="30" fill="url(#ucAdmin)" stroke="#fb7185" stroke-width="1.8"/>
+  <text x="1540" y="710" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">Cek Status Server (/health)</text>
+  <text x="1540" y="728" font-size="11.5" font-weight="500" fill="#e2e8f0" text-anchor="middle">(Node.js Runtime & Memory Cap)</text>
+</g>
+<g transform="translate(130, 540)" filter="url(#dropShadow)">
+  <rect x="-85" y="70" width="170" height="42" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.6"/>
+  <text x="0" y="87" font-size="13" font-weight="700" fill="#38bdf8" text-anchor="middle">Pengguna / Tamu</text>
+  <text x="0" y="103" font-size="10" font-weight="500" fill="#94a3b8" text-anchor="middle">(User / Studio Guest)</text>
+  <circle cx="0" cy="0" r="18" fill="#0f172a" stroke="#38bdf8" stroke-width="2.8"/>
+  <line x1="0" y1="18" x2="0" y2="50" stroke="#38bdf8" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="-24" y1="28" x2="24" y2="28" stroke="#38bdf8" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="0" y1="50" x2="-20" y2="76" stroke="#38bdf8" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="0" y1="50" x2="20" y2="76" stroke="#38bdf8" stroke-width="2.8" stroke-linecap="round"/>
+</g>
+<g transform="translate(2050, 250)" filter="url(#dropShadow)">
+  <rect x="-85" y="70" width="170" height="42" rx="8" fill="#1e293b" stroke="#fb7185" stroke-width="1.6"/>
+  <text x="0" y="87" font-size="13" font-weight="700" fill="#fb7185" text-anchor="middle">Administrator</text>
+  <text x="0" y="103" font-size="10" font-weight="500" fill="#94a3b8" text-anchor="middle">(Super Admin / Operator)</text>
+  <circle cx="0" cy="0" r="18" fill="#0f172a" stroke="#fb7185" stroke-width="2.8"/>
+  <line x1="0" y1="18" x2="0" y2="50" stroke="#fb7185" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="-24" y1="28" x2="24" y2="28" stroke="#fb7185" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="0" y1="50" x2="-20" y2="76" stroke="#fb7185" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="0" y1="50" x2="20" y2="76" stroke="#fb7185" stroke-width="2.8" stroke-linecap="round"/>
+</g>
+<g transform="translate(2050, 790)" filter="url(#dropShadow)">
+  <rect x="-95" y="-60" width="190" height="120" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+  <text x="0" y="-36" font-size="10.5" font-weight="700" fill="#38bdf8" text-anchor="middle">&lt;&lt;secondary actor&gt;&gt;</text>
+  <text x="0" y="-14" font-size="13.5" font-weight="800" fill="#ffffff" text-anchor="middle">XAMPP MySQL / SQLite</text>
+  <text x="0" y="4" font-size="11" font-weight="500" fill="#94a3b8" text-anchor="middle">Dual DB Engine (Port 3306)</text>
+  <ellipse cx="0" cy="20" rx="32" ry="6.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.2"/>
+  <ellipse cx="0" cy="34" rx="32" ry="6.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.2"/>
+  <ellipse cx="0" cy="48" rx="32" ry="6.5" fill="#0284c7" stroke="#38bdf8" stroke-width="1.2"/>
+</g>
+
+    <!-- Generalization: Admin inherits Pengguna -->
+    <path d="M 1970 230 C 1800 65, 450 65, 160 490" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#generalizeArrow)"/>
+    <g transform="translate(1500, 85)">
+        <rect x="-95" y="-12" width="190" height="24" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
+        <text x="0" y="4" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle">&lt;&lt;generalization&gt;&gt; (inherits User)</text>
+    </g>
+    
+<!-- Association Lines: Pengguna to Modul 1 & 2 -->
+<line x1="170" y1="565" x2="325" y2="245" stroke="#475569" stroke-width="1.8" opacity="0.85"/>
+<line x1="170" y1="565" x2="395" y2="445" stroke="#475569" stroke-width="1.8" opacity="0.85"/>
+<line x1="170" y1="565" x2="385" y2="620" stroke="#475569" stroke-width="1.8" opacity="0.85"/>
+<line x1="170" y1="565" x2="380" y2="720" stroke="#475569" stroke-width="1.8" opacity="0.85"/>
+<line x1="170" y1="565" x2="385" y2="820" stroke="#475569" stroke-width="1.8" opacity="0.85"/>
+<line x1="170" y1="565" x2="385" y2="920" stroke="#475569" stroke-width="1.8" opacity="0.85"/>
+<!-- Association Lines: Pengguna to Modul 3 & 4 via Central Clear Channel -->
+<path d="M 170 565 C 500 520, 740 520, 770 520 S 840 240, 875 240" fill="none" stroke="#475569" stroke-width="1.6" opacity="0.75"/>
+<path d="M 170 565 C 500 520, 740 520, 770 520 S 840 380, 890 420" fill="none" stroke="#475569" stroke-width="1.6" opacity="0.75"/>
+<path d="M 170 565 C 500 520, 740 520, 770 520 S 840 510, 880 510" fill="none" stroke="#475569" stroke-width="1.6" opacity="0.75"/>
+<path d="M 170 565 C 500 525, 740 525, 770 525 S 840 680, 885 680" fill="none" stroke="#475569" stroke-width="1.6" opacity="0.75"/>
+<path d="M 170 565 C 500 525, 740 525, 770 525 S 840 770, 875 770" fill="none" stroke="#475569" stroke-width="1.6" opacity="0.75"/>
+<path d="M 170 565 C 500 525, 740 525, 770 525 S 840 860, 890 860" fill="none" stroke="#475569" stroke-width="1.6" opacity="0.75"/>
+<path d="M 170 565 C 500 525, 740 525, 770 525 S 840 950, 895 950" fill="none" stroke="#475569" stroke-width="1.6" opacity="0.75"/>
+<!-- Association Lines: Admin to Admin Use Cases -->
+<line x1="1970" y1="280" x2="1695" y2="240" stroke="#f43f5e" stroke-width="2" opacity="0.9"/>
+<line x1="1970" y1="280" x2="1690" y2="350" stroke="#f43f5e" stroke-width="2" opacity="0.9"/>
+<line x1="1970" y1="280" x2="1695" y2="465" stroke="#f43f5e" stroke-width="2" opacity="0.9"/>
+<line x1="1970" y1="280" x2="1695" y2="590" stroke="#f43f5e" stroke-width="2" opacity="0.9"/>
+<line x1="1970" y1="280" x2="1685" y2="715" stroke="#f43f5e" stroke-width="2" opacity="0.9"/>
+<!-- Association Lines: Database Server to Data Use Cases -->
+<line x1="1955" y1="790" x2="1160" y2="510" stroke="#0ea5e9" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.85"/>
+<line x1="1955" y1="790" x2="1155" y2="680" stroke="#0ea5e9" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.85"/>
+<line x1="1955" y1="790" x2="1165" y2="770" stroke="#0ea5e9" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.85"/>
+<line x1="1955" y1="790" x2="1150" y2="860" stroke="#0ea5e9" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.85"/>
+<line x1="1955" y1="790" x2="1695" y2="240" stroke="#0ea5e9" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.85"/>
+<line x1="1955" y1="790" x2="1690" y2="350" stroke="#0ea5e9" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.85"/>
+<line x1="1955" y1="790" x2="1695" y2="465" stroke="#0ea5e9" stroke-width="1.8" stroke-dasharray="5 3" opacity="0.85"/>
+
+    <!-- UC1 <<include>> UC2 -->
+    <line x1="555" y1="245" x2="588" y2="245" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrowInclude)"/>
+    <g transform="translate(572, 232)">
+        <rect x="-35" y="-10" width="70" height="18" rx="4" fill="#0f172a" stroke="#0284c7" stroke-width="0.8"/>
+        <text x="0" y="3" font-size="9.5" font-weight="800" fill="#38bdf8" text-anchor="middle">&lt;&lt;include&gt;&gt;</text>
+    </g>
+    
+
+    <!-- UC3 <<extend>> UC1 -->
+    <line x1="440" y1="315" x2="440" y2="280" stroke="#c084fc" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrowExtend)"/>
+    <g transform="translate(440, 298)">
+        <rect x="-35" y="-9" width="70" height="18" rx="4" fill="#0f172a" stroke="#7c3aed" stroke-width="0.8"/>
+        <text x="0" y="3.5" font-size="9.5" font-weight="800" fill="#c084fc" text-anchor="middle">&lt;&lt;extend&gt;&gt;</text>
+    </g>
+    
+
+    <!-- UC4 <<extend>> UC1 -->
+    <path d="M 590 330 C 540 305, 500 285, 480 278" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrowExtend)"/>
+    <g transform="translate(545, 305)">
+        <rect x="-35" y="-9" width="70" height="18" rx="4" fill="#0f172a" stroke="#7c3aed" stroke-width="0.8"/>
+        <text x="0" y="3.5" font-size="9.5" font-weight="800" fill="#c084fc" text-anchor="middle">&lt;&lt;extend&gt;&gt;</text>
+    </g>
+    
+
+    <!-- UC10 <<extend>> UC9 -->
+    <line x1="1020" y1="300" x2="1020" y2="273" stroke="#34d399" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arrow)"/>
+    <g transform="translate(1020, 287)">
+        <rect x="-35" y="-9" width="70" height="18" rx="4" fill="#0f172a" stroke="#059669" stroke-width="0.8"/>
+        <text x="0" y="3.5" font-size="9.5" font-weight="800" fill="#34d399" text-anchor="middle">&lt;&lt;extend&gt;&gt;</text>
+    </g>
+    
+
+    <!-- Legend Box in bottom left -->
+    <g transform="translate(300, 1055)">
+        <rect width="720" height="255" rx="14" fill="#0b1329" stroke="#334155" stroke-width="1.5"/>
+        <text x="22" y="28" font-size="13.5" font-weight="800" fill="#f8fafc" letter-spacing="0.5">LEGENDA MODUL APLIKASI (BERDASARKAN WARNA)</text>
+        
+        <circle cx="36" cy="62" r="10" fill="#0284c7"/>
+        <text x="58" y="66" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#38bdf8">Kamera &amp; Pemotretan:</tspan> Multi-shot capture, timer otomatis, retake foto &amp; ganti kamera</text>
+
+        <circle cx="36" cy="102" r="10" fill="#7c3aed"/>
+        <text x="58" y="106" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#c084fc">Kustomisasi &amp; Frame:</tspan> Grid strip 1x1-4x4, border slideshow, tema frame, filter warna, stiker</text>
+
+        <circle cx="36" cy="142" r="10" fill="#059669"/>
+        <text x="58" y="146" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#34d399">Ekspor, QR &amp; Galeri:</tspan> Soft-file PNG HD, QR Code download via smartphone, cetak foto langsung</text>
+
+        <circle cx="36" cy="182" r="10" fill="#d97706"/>
+        <text x="58" y="186" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#fbbf24">Autentikasi Pengguna:</tspan> Registrasi, login multi-metode (Google/Apple/Guest/Sandi), ganti password</text>
+
+        <circle cx="36" cy="222" r="10" fill="#e11d48"/>
+        <text x="58" y="226" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#fb7185">Administrasi &amp; Keamanan:</tspan> RBAC User, moderasi galeri, dual DB (XAMPP/SQLite), security hardening</text>
+    </g>
+
+    <!-- Legend Notasi Relasi UML -->
+    <g transform="translate(1040, 1055)">
+        <rect width="755" height="255" rx="14" fill="#0b1329" stroke="#334155" stroke-width="1.5"/>
+        <text x="22" y="28" font-size="13.5" font-weight="800" fill="#f8fafc" letter-spacing="0.5">NOTASI &amp; HUBUNGAN STANDARD UML</text>
+
+        <!-- Association Line -->
+        <line x1="32" y1="62" x2="95" y2="62" stroke="#475569" stroke-width="2.2"/>
+        <text x="115" y="66" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#f8fafc">Asosiasi (Association):</tspan> Interaksi langsung antara aktor manusia dan use case fungsional</text>
+
+        <!-- Include -->
+        <line x1="32" y1="102" x2="95" y2="102" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 3"/>
+        <text x="115" y="106" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#38bdf8">&lt;&lt;include&gt;&gt;:</tspan> Use case sumber wajib mengeksekusi use case target (contoh: Timer saat Capture)</text>
+
+        <!-- Extend -->
+        <line x1="32" y1="142" x2="95" y2="142" stroke="#c084fc" stroke-width="2" stroke-dasharray="5 3"/>
+        <text x="115" y="146" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#c084fc">&lt;&lt;extend&gt;&gt;:</tspan> Fungsionalitas opsional bersyarat (contoh: Retake foto jika user ingin mengulang)</text>
+
+        <!-- Generalization -->
+        <line x1="32" y1="182" x2="95" y2="182" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 3"/>
+        <text x="115" y="186" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#e2e8f0">&lt;&lt;generalization&gt;&gt;:</tspan> Pewarisan wewenang (Admin mewarisi seluruh kemampuan Pengguna)</text>
+
+        <!-- DB Sync -->
+        <line x1="32" y1="222" x2="95" y2="222" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="4 2"/>
+        <text x="115" y="226" font-size="12" fill="#cbd5e1"><tspan font-weight="700" fill="#38bdf8">Sinkronisasi Basis Data:</tspan> Transaksi query CRUD asynchronous ke XAMPP MySQL / SQLite</text>
+    </g>
+    
+
+    <g transform="translate(1125, 1390)" text-anchor="middle">
+        <text font-size="14" font-weight="700" fill="#94a3b8">Photobooth Studio Web Application &bull; UML Use Case Diagram Architecture</text>
+        <text y="22" font-size="13" font-weight="600" fill="#38bdf8">Designed &amp; Copyright &copy; by Nadif Ahmad Fahrial</text>
+    </g>
+    
+</svg>
